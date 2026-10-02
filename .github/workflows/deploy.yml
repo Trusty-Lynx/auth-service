@@ -27,7 +27,8 @@ jobs:
 
       - name: Build & restart
         run: |
-            ssh trustylynx@152.53.183.40 '
-              cd /opt/trustylynx/auth-service &&
-              docker compose build &&
-              docker compose up -d
+          ssh trustylynx@152.53.183.40 '
+            cd /opt/trustylynx/auth-service &&
+            docker compose build &&
+            docker compose up -d
+          '
