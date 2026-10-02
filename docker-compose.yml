@@ -1,0 +1,14 @@
+name: auth-service
+
+services:
+  app:
+    build: .
+    container_name: auth-service
+    ports:
+      - "7491:7491"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: trustylynx-net
+    external: true
