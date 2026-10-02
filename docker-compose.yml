@@ -5,7 +5,7 @@ services:
     build: .
     container_name: auth-service
     ports:
-      - "7491:7491"
+      - "7491:8080"
     restart: unless-stopped
 
 networks:
