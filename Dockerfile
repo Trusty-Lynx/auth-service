@@ -4,6 +4,7 @@ WORKDIR /build
 
 # Cache dependencies first (only re-resolves when build scripts change).
 COPY settings.gradle.kts build.gradle.kts gradle.properties ./
+COPY gradle ./gradle
 RUN gradle --no-daemon dependencies > /dev/null 2>&1 || true
 
 # Build the fat jar (io.ktor.plugin provides buildFatJar).
