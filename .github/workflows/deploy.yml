@@ -23,11 +23,11 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='.env' \
-            ./ deploy@152.53.183.40:/opt/trustylynx/auth-service/
+            ./ trustylynx@152.53.183.40:/opt/trustylynx/auth-service/
 
       - name: Build & restart
         run: |
-            ssh deploy@152.53.183.40 '
+            ssh trustylynx@152.53.183.40 '
               cd /opt/trustylynx/auth-service &&
               docker compose build &&
               docker compose up -d
