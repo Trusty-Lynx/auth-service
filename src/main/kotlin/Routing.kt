@@ -28,5 +28,11 @@ fun Application.configureRouting() {
             val uid = call.parameters["uid"]
             call.respondText("User endpoint for UID: $uid")
         }
+        get("/test") {
+            val dbUrl = System.getenv("DB_URL")
+            val dbUser = System.getenv("DB_USER")
+            val dbPassword = System.getenv("DB_PASSWORD")
+            call.respondText("Test endpoint. DB_URL: $dbUrl, DB_USER: $dbUser, DB_PASSWORD: $dbPassword")
+        }
     }
 }

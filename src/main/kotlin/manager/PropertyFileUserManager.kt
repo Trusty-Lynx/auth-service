@@ -2,6 +2,7 @@ package de.trustylynx.manager
 
 import de.trustylynx.model.RegisterResponse
 import de.trustylynx.model.User
+import java.util.Properties
 import kotlin.uuid.Uuid
 
 object PropertyFileUserManager : UserManager {
@@ -15,6 +16,12 @@ object PropertyFileUserManager : UserManager {
         val registerResponse = RegisterResponse(
             user.uid
         )
+
+        val properties = Properties()
+        properties.setProperty(user.uid, "${user.email}:${user.password}")
+        properties.store(java.io.FileOutputStream("users.properties"), null)
+
+
         return registerResponse
     }
 
