@@ -7,8 +7,14 @@ services:
     ports:
       - "7491:8080"
     restart: unless-stopped
+    env_file: .env
+    networks:
+      - default
+      - auth-db-net
 
 networks:
   default:
     name: trustylynx-net
+    external: true
+  auth-db-net:
     external: true
