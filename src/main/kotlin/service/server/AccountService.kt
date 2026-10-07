@@ -1,6 +1,7 @@
 package de.trustylynx.service.server
 
 import de.trustylynx.AlreadyExists
+import de.trustylynx.BadRequest
 import de.trustylynx.manager.PostgresUserManager
 import de.trustylynx.manager.UserManager
 import de.trustylynx.model.api.RegisterRequest
@@ -18,12 +19,14 @@ object AccountService {
 
     private val users: UserManager = PostgresUserManager
 
-    suspend fun register(request: RegisterRequest, deviceHeader: String?, clientIp: String): RegisterResponse {
+    suspend fun register(request: RegisterRequest, deviceIdHeader: String?, clientIp: String): RegisterResponse {
         val email = Validation.email(request.email)
         val saltLogin = Validation.base64(request.salt, SALT_LOGIN_LENGTH)
         Validation.kdf(request.kdf)
         val loginKey = Validation.base64(request.loginKey, LOGIN_KEY_LENGTH)
-        val deviceId = Validation.deviceId(request.device.name)
+        val deviceId = Validation.deviceId(deviceIdHeader)
+        if (request.device.id != deviceId) throw BadRequest()
+        val deviceName = Validation.deviceName(request.device.name)
         val publicKey = Validation.publicKey(request.device.publicKey)
 
         if (users.findByEmail(email) != null) throw AlreadyExists()
