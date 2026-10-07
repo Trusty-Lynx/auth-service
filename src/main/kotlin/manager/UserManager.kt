@@ -1,12 +1,19 @@
 package de.trustylynx.manager
 
-import de.trustylynx.model.RegisterResponse
 import de.trustylynx.model.User
 
 interface UserManager {
 
-    fun logUserOn(email: String, password: String): RegisterResponse?
-    fun getUserFromToken(token: String): String?
-    fun logUserOff(email: String): Boolean
+    suspend fun crate(user: User)
+    suspend fun findByEmail(email: String): User?
+    suspend fun findById(userId: String): User?
+    suspend fun updateLoginCredentials(
+        userId: String,
+        saltLogin: ByteArray,
+        kdfLogin: ByteArray,
+        saltSLogin: ByteArray,
+        loginVerifier: ByteArray,
+    )
+    suspend fun delete(userId: String)
 
 }
