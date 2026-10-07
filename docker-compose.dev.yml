@@ -1,0 +1,12 @@
+services:
+  auth-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+    ports: ["5432:5432"]
+    volumes: [auth-db-data:/var/lib/postgresql/data]
+
+volumes:
+  auth-db-data:
