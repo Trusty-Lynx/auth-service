@@ -1,9 +1,10 @@
 package de.trustylynx
 
-import de.trustylynx.manager.PropertyFileUserManager
-import de.trustylynx.model.RegisterRequest
+import de.trustylynx.model.api.RegisterRequest
+import de.trustylynx.service.server.AccountService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
+import io.ktor.server.plugins.origin
 import io.ktor.server.request.receive
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -11,9 +12,8 @@ import io.ktor.server.routing.*
 fun Application.configureRouting() {
     routing {
         post("/register") {
-            val registerRequest = call.receive<RegisterRequest>()
-            val registerResponse = PropertyFileUserManager.logUserOn(registerRequest.email, registerRequest.password)
-            call.respond(HttpStatusCode.Created, registerResponse!!)
+            val request = call.receive<RegisterRequest>()
+            call.respond(HttpStatusCode.Created, AccountService.register(request, call.deviceIdHeader(), call.clientIp()))
         }
         post("/login") {
             call.respondText("Login endpoint")
@@ -36,3 +36,10 @@ fun Application.configureRouting() {
         }
     }
 }
+
+const val DEVICE_ID_HEADER = "X-Device-Id"
+
+fun ApplicationCall.deviceIdHeader(): String? = request.headers[DEVICE_ID_HEADER]
+
+// OFFEN: Hinter dem Gateway ist das die IP des Gateways. Dann die vom Gateway gesetzte Client-IP auswerten.
+fun ApplicationCall.clientIp(): String = request.origin.remoteHost

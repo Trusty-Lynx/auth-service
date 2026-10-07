@@ -1,11 +1,16 @@
 [versions]
 kotlin = "2.4.0"
 logback = "1.5.37"
+hikaricp = "7.1.0"
+bouncycastle = "1.86"
 
 [libraries]
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
