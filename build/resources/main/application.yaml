@@ -4,4 +4,5 @@ ktor:
   application:
     modules:
       - de.trustylynx.SerializationKt.configureSerialization
+      - de.trustylynx.StatusPagesKt.configureStatusPages
       - de.trustylynx.RoutingKt.configureRouting
