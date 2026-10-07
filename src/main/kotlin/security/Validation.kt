@@ -8,6 +8,7 @@ import java.util.Base64
 object Validation {
 
     const val MAX_EMAIL_LENGTH = 254
+    const val MAX_DEVICE_NAME_LENGTH = 100
     const val P256_PUBLIC_KEY_LENGTH = 65
 
     private val EMAIL = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
@@ -40,6 +41,12 @@ object Validation {
 
     fun kdf(kdf: KdfParams) {
         if (kdf != KdfParams.DEFAULT) throw BadRequest()
+    }
+
+    fun deviceName(name: String): String {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty() || trimmed.length > MAX_DEVICE_NAME_LENGTH) throw BadRequest()
+        return trimmed
     }
 
     fun publicKey(value: String): ByteArray {
