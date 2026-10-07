@@ -25,7 +25,7 @@ object AccountService {
         Validation.kdf(request.kdf)
         val loginKey = Validation.base64(request.loginKey, LOGIN_KEY_LENGTH)
         val deviceId = Validation.deviceId(deviceIdHeader)
-        if (request.device.id != deviceId) throw BadRequest()
+        if (request.device.id != deviceId) throw BadRequest("device id does not match X-Device-Id header")
         val deviceName = Validation.deviceName(request.device.name)
         val publicKey = Validation.publicKey(request.device.publicKey)
 
