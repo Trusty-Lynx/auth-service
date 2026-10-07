@@ -19,43 +19,43 @@ object Validation {
 
     fun email(raw: String): String {
         val email = normalizeEmail(raw)
-        if (email.length > MAX_EMAIL_LENGTH || !EMAIL.matches(email)) throw BadRequest()
+        if (email.length > MAX_EMAIL_LENGTH || !EMAIL.matches(email)) throw BadRequest("invalid email")
         return email
     }
 
     fun base64(value: String, length: Int): ByteArray {
-        if (value.length != (length +2)/3 * 4) throw BadRequest()
+        if (value.length != (length +2)/3 * 4) throw BadRequest("invalid base64 length, expected $length bytes")
         val bytes = try {
             Base64.getDecoder().decode(value)
         } catch (e: IllegalArgumentException) {
-            throw BadRequest()
+            throw BadRequest("invalid base64 encoding")
         }
-        if (bytes.size != length) throw BadRequest()
+        if (bytes.size != length) throw BadRequest("decoded value must be $length bytes")
         return bytes
     }
 
     fun deviceId(deviceId: String?): String {
-        if (deviceId == null || !DEVICE_ID.matches(deviceId)) throw BadRequest()
+        if (deviceId == null || !DEVICE_ID.matches(deviceId)) throw BadRequest("missing or invalid device id")
         return deviceId
     }
 
     fun kdf(kdf: KdfParams) {
-        if (kdf != KdfParams.DEFAULT) throw BadRequest()
+        if (kdf != KdfParams.DEFAULT) throw BadRequest("unsupported kdf parameters")
     }
 
     fun deviceName(name: String): String {
         val trimmed = name.trim()
-        if (trimmed.isEmpty() || trimmed.length > MAX_DEVICE_NAME_LENGTH) throw BadRequest()
+        if (trimmed.isEmpty() || trimmed.length > MAX_DEVICE_NAME_LENGTH) throw BadRequest("device name must be 1-$MAX_DEVICE_NAME_LENGTH characters")
         return trimmed
     }
 
     fun publicKey(value: String): ByteArray {
         val bytes = base64(value, P256_PUBLIC_KEY_LENGTH)
-        if (bytes[0] != 0x04.toByte()) throw BadRequest()
+        if (bytes[0] != 0x04.toByte()) throw BadRequest("public key must be an uncompressed P-256 point")
         try {
             P256_CURVE.decodePoint(bytes)
         } catch (_: RuntimeException) {
-            throw BadRequest()
+            throw BadRequest("public key is not a valid P-256 point")
         }
         return bytes
     }
