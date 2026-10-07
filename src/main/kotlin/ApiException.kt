@@ -7,7 +7,7 @@ sealed class ApiException(
     val code: String,
 ) : RuntimeException(code, null, false, false)
 
-class BadRequest : ApiException(HttpStatusCode.BadRequest, "bad_request")
+class BadRequest(val reason: String) : ApiException(HttpStatusCode.BadRequest, "bad_request")
 
 class Unauthorized : ApiException(HttpStatusCode.Unauthorized, "unauthorized")
 
