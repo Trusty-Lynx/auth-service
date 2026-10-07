@@ -9,6 +9,7 @@ import de.trustylynx.model.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.sql.Connection
+import java.sql.ResultSet
 import java.sql.SQLException
 import javax.sql.DataSource
 
@@ -47,13 +48,9 @@ object PostgresUserManager : UserManager {
         Unit
     }
 
-    override suspend fun findByEmail(email: String): User? {
-        TODO("Not yet implemented")
-    }
+    override suspend fun findByEmail(email: String): User? = findOne("email", email)
 
-    override suspend fun findById(userId: String): User? {
-        TODO("Not yet implemented")
-    }
+    override suspend fun findById(userId: String): User? = findOne("user_id", userId)
 
     override suspend fun updateLoginCredentials(
         userId: String,
@@ -72,4 +69,26 @@ object PostgresUserManager : UserManager {
     private suspend fun <T> db(block: (Connection) -> T): T = withContext(Dispatchers.IO) {
         dataSource.connection.use(block)
     }
+
+    private suspend fun findOne(column: String, value: String): User? = db { connection ->
+        connection.prepareStatement(
+            """
+            SELECT user_id, email, salt_login, kdf_login, salt_s_login, login_verifier,
+                   totp_secret, totp_confirmed, totp_last_step
+            FROM users WHERE $column = ?
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, value)
+            statement.executeQuery().use { rows -> if (rows.next()) rows.toUser() else null }
+        }
+    }
+
+    private fun ResultSet.toUser() = User(
+        userId = getString("user_id"),
+        email = getString("email"),
+        saltLogin = getBytes("salt_login"),
+        kdfLogin = AppJson.decodeFromString(KdfParams.serializer(), getString("kdf_login")),
+        saltSLogin = getBytes("salt_s_login"),
+        loginVerifier = getBytes("login_verifier")
+    )
 }
