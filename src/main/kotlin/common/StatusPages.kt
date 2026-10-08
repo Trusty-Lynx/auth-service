@@ -21,7 +21,6 @@ fun Application.configureStatusPages() {
             }
             call.respond(cause.status, ErrorResponse(cause.code, cause.reason))
         }
-        // Kaputtes oder unvollständiges JSON bei call.receive()
         exception<BadRequestException> { call, _ ->
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("bad_request", "malformed request body"))
         }
@@ -30,7 +29,6 @@ fun Application.configureStatusPages() {
             call.respond(HttpStatusCode.BadGateway, ErrorResponse("upstream_error"))
         }
         exception<Throwable> { call, cause ->
-            // Ktor-eigene Fehler (404, 415, 413, …) behalten ihren Status.
             val status = defaultExceptionStatusCode(cause)
             if (status != null) {
                 call.respond(status, ErrorResponse(status.description.lowercase().replace(' ', '_')))

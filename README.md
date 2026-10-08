@@ -1,35 +1,72 @@
 # auth-service
 
-This project was created using the [Ktor Project Generator](https://start.ktor.io).
+Konto und Login für TrustyLynx: registrieren, anmelden, abmelden. Das Gateway prüft hier jeden Login-Token.
+Mit dem Tresor hat dieser Service nichts zu tun.
 
-Here are some useful links to get you started:
+Kotlin 2.4 · Ktor 3.6 · PostgreSQL 17 · Java 21
 
-* [Ktor Documentation](https://ktor.io/docs/home.html)
-* [Ktor GitHub page](https://github.com/ktorio/ktor)
-* [Ktor Slack chat](https://app.slack.com/client/T09229ZC6/C0A974TJ9). [Request an invite](https://surveys.jetbrains.com/s3/kotlin-slack-sign-up).
+## Endpoints
 
-## Features
+| Methode | Pfad | Zweck |
+|---|---|---|
+| `GET` | `/prelogin?email=…` | Salt und Argon2-Parameter für das Kontopasswort. Unbekannte E-Mails bekommen ein Fake-Salt |
+| `POST` | `/register` | Konto und erste Session anlegen, liefert `userId` und Login-Token |
+| `POST` | `/login` | Anmelden mit E-Mail und `loginKey`, liefert einen neuen Login-Token |
+| `POST` | `/logout` | Session dieses Geräts beenden (`Authorization: Bearer …`) |
+| `POST` | `/internal/sessions/verify` | Login-Token prüfen. Nur für das Gateway (`X-Service-Token`) |
+| `GET` | `/health` | `200`, wenn Service und Datenbank laufen, sonst `503` |
 
-Here's a list of features included in this project:
+Das Gateway leitet `/api/…` ohne das Präfix weiter. Felder, Fehler und Beispiele: [API.md](API.md).
 
-| Name                                                                                  | Description                                                                        |
-|---------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| [Content Negotiation](https://start.ktor.io/p/io.ktor/server-content-negotiation)     | Provides automatic content conversion according to Content-Type and Accept headers |
-| [kotlinx.serialization](https://start.ktor.io/p/io.ktor/server-kotlinx-serialization) | Handles JSON serialization using kotlinx.serialization library                     |
+## Struktur
 
-## Building & Running
-
-To build or run the project, use one of the following tasks:
-
-| Task              | Description       |
-|-------------------|-------------------|
-| `./gradlew test`  | Run the tests     |
-| `./gradlew build` | Build the project |
-| `./gradlew run`   | Run the server    |
-
-If the server starts successfully, you'll see the following output:
-
+```text
+src/main/kotlin/
+├── Application.kt   Einstieg: baut alle Teile und verdrahtet sie
+├── AppConfig.kt     alle Umgebungsvariablen an einer Stelle
+├── api/             Routen und Request-/Response-Klassen
+├── validation/      Requests prüfen und in Domain-Objekte übersetzen
+├── domain/          Use Cases (AccountService, SessionService) und Modelle
+├── persistence/     Repositories (Interface + Postgres) und Transaktionen
+├── clients/         Aufrufe an andere Services (Key-Service)
+├── security/        Login-Verifier (Argon2id), Rate-Limit
+└── common/          gleich in allen Services: Fehler, JSON, Env, DB, HTTP-Client, Health, Request-ID
+src/main/resources/db/migration/   Datenbankschema (Flyway)
 ```
-2024-12-04 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
-2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
+
+Ein Request läuft immer `api` → `validation` → `domain` → `persistence`/`clients`.
+Fehler werden als Exception geworfen (`common/ApiException.kt`) und zentral in `common/StatusPages.kt` beantwortet.
+Jede Anfrage hat eine `X-Request-Id`. Sie steht in jeder Logzeile und wird an den Key-Service weitergereicht.
+
+## Lokal starten
+
+```bash
+docker compose -f docker-compose.dev.yml up -d   # Postgres auf localhost:5432
+./gradlew run -Pdevelopment                      # Port 8080, Dev-Defaults aus AppConfig
 ```
+
+Ohne `-Pdevelopment` müssen alle Pflichtvariablen gesetzt sein. Welche das sind, steht in `.env.example`.
+Das Schema legt Flyway beim Start an.
+
+## Tests
+
+```bash
+./gradlew test
+```
+
+Die Endpoint-Tests laufen ohne Datenbank und ohne Key-Service, `src/test/kotlin/Fakes.kt` ersetzt beide.
+`PostgresRepositoryTest` prüft das SQL gegen ein echtes Postgres 17 in Docker (Testcontainers).
+Läuft kein Docker, werden diese Tests übersprungen.
+
+## Deploy
+
+Ein Push auf den Branch `deploy` baut das Image auf dem Server und startet es neu (`.github/workflows/deploy.yml`).
+Die `.env` liegt nur auf dem Server.
+
+## Offen
+
+- **Guard anbinden:** `POST /internal/devices/check` bei der Registrierung (innerhalb der Transaktion) und beim Login aufrufen.
+  Beim Login gilt: `trusted`/`unknown` weiter, `blocked` → `403`, `409` oder `404` → `401`.
+  Bis dahin gilt jedes Gerät als `trusted`. Dazu `GUARD_SERVICE_URL` in `AppConfig` und `.env.example` aufnehmen.
+- **Key-Service-Pfad:** Der Code ruft `POST /internal/users/create`, die Doku nennt `POST /internal/users/{userId}/keys`. Eins von beiden angleichen.
+
