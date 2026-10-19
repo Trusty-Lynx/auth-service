@@ -7,6 +7,7 @@ import de.trustylynx.api.RegisterRequest
 import de.trustylynx.api.RegisterResponse
 import de.trustylynx.api.VerifySessionRequest
 import de.trustylynx.common.AppJson
+import de.trustylynx.common.CorsConfig
 import de.trustylynx.common.DEVICE_ID_HEADER
 import de.trustylynx.common.ErrorResponse
 import de.trustylynx.common.SERVICE_TOKEN_HEADER
@@ -42,10 +43,10 @@ val SALT_LOGIN = ByteArray(16) { 1 }
 
 val P256_PUBLIC_KEY: String = ECNamedCurveTable.getByName("secp256r1").g.getEncoded(false).toBase64()
 
-fun authTest(block: suspend AuthTestEnv.() -> Unit) = testApplication {
+fun authTest(cors: CorsConfig = CorsConfig(), block: suspend AuthTestEnv.() -> Unit) = testApplication {
     environment { config = MapApplicationConfig() }
     val env = AuthTestEnv()
-    application { configureApp(env.accounts, env.sessions, GATEWAY_TOKEN) { env.healthy } }
+    application { configureApp(env.accounts, env.sessions, GATEWAY_TOKEN, cors) { env.healthy } }
     env.client = client
     env.block()
 }

@@ -3,6 +3,8 @@ package de.trustylynx
 import de.trustylynx.api.accountRoutes
 import de.trustylynx.api.internalRoutes
 import de.trustylynx.clients.HttpKeyServiceClient
+import de.trustylynx.common.CorsConfig
+import de.trustylynx.common.configureCors
 import de.trustylynx.common.configureRequestLogging
 import de.trustylynx.common.configureSerialization
 import de.trustylynx.common.configureStatusPages
@@ -50,16 +52,18 @@ fun Application.module() {
         preloginSecret = config.preloginSecret,
     )
 
-    configureApp(accounts, sessions, config.serviceTokenGateway) { dataSource.isReachable() }
+    configureApp(accounts, sessions, config.serviceTokenGateway, config.cors) { dataSource.isReachable() }
 }
 
 fun Application.configureApp(
     accounts: AccountService,
     sessions: SessionService,
     gatewayToken: String,
+    cors: CorsConfig,
     isHealthy: suspend () -> Boolean,
 ) {
     configureRequestLogging()
+    configureCors(cors)
     configureSerialization()
     configureStatusPages()
     routing {
