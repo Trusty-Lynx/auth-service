@@ -21,6 +21,9 @@ Das Gateway prüft über ihn jeden Login-Token. Mit dem Tresor hat dieser Servic
 - **E-Mail:** Wird überall auf `trim` + `lowercase` normalisiert. ` Alice@Example.com ` und `alice@example.com` sind dasselbe Konto.
 - **Request-ID:** Optionaler Header `X-Request-Id` (1–128 Zeichen aus `A–Z a–z 0–9 . _ -`). Fehlt er oder ist er ungültig, vergibt der Service eine UUID.
   Die ID kommt in jeder Antwort als `X-Request-Id` zurück, steht im Log und geht an den Key-Service weiter.
+- **CORS:** Browser dürfen von `http://localhost:<port>`, `http://127.0.0.1:<port>` und den Origins aus `CORS_ALLOWED_ORIGINS` zugreifen.
+  Erlaubte Request-Header: `Content-Type`, `Authorization`, `X-Device-Id`, `X-Request-Id`, `X-Timestamp`, `X-Device-Sig`. Lesbar sind `X-Request-Id` und `Retry-After`.
+  Andere Origins bekommen `403`. Requests ohne `Origin`-Header (Gateway, curl) sind nicht betroffen.
 
 ### Login-Token
 

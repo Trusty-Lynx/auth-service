@@ -1,5 +1,6 @@
 package de.trustylynx
 
+import de.trustylynx.common.CorsConfig
 import de.trustylynx.common.DbConfig
 import de.trustylynx.common.decodeBase64OrNull
 import de.trustylynx.common.env
@@ -13,9 +14,10 @@ class AppConfig(
     val serviceTokenGateway: String,
     val preloginSecret: ByteArray,
     val loginTokenTtl: Duration,
+    val cors: CorsConfig,
 ) {
     override fun toString(): String =
-        "AppConfig(db=$db, keyServiceUrl=$keyServiceUrl, loginTokenTtl=$loginTokenTtl)"
+        "AppConfig(db=$db, keyServiceUrl=$keyServiceUrl, loginTokenTtl=$loginTokenTtl, cors=$cors)"
 
     companion object {
         private const val PRELOGIN_SECRET_LENGTH = 32
@@ -32,6 +34,7 @@ class AppConfig(
             serviceTokenGateway = envOrDev("SERVICE_TOKEN_GATEWAY", "dev-service-token-gateway"),
             preloginSecret = preloginSecret(envOrDev("PRELOGIN_SECRET", "ZGV2LXByZWxvZ2luLXNlY3JldC0zMi1ieXRlcy0hISE=")),
             loginTokenTtl = Duration.ofSeconds(positiveLong("LOGIN_TOKEN_TTL_SECONDS", env("LOGIN_TOKEN_TTL_SECONDS", "43200"))),
+            cors = CorsConfig.fromEnv(),
         )
 
         private fun preloginSecret(base64: String): ByteArray {
