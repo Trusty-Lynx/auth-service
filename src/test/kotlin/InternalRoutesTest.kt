@@ -20,16 +20,15 @@ class InternalRoutesTest {
         val body = AppJson.decodeFromString<VerifySessionResponse>(response.bodyAsText())
         val session = sessionRepository.sessions.values.single()
         assertEquals(registered.userId, body.userId)
-        assertEquals(DEVICE_A, body.deviceId)
         assertEquals(session.sessionId, body.sessionId)
         assertEquals(clock.instant().plus(TOKEN_TTL).epochSecond, body.expiresAt)
     }
 
     @Test
-    fun `T12 token of device A checked with device B returns 401`() = authTest {
-        val token = registered(deviceId = DEVICE_A).token
+    fun `T12 unknown token returns 401`() = authTest {
+        registered()
 
-        val response = verify(token, deviceId = DEVICE_B)
+        val response = verify("not-a-real-token")
 
         assertEquals(HttpStatusCode.Unauthorized, response.status)
         assertEquals(ErrorResponse("unauthorized"), response.error())
@@ -50,11 +49,5 @@ class InternalRoutesTest {
         clock.advance(TOKEN_TTL)
 
         assertEquals(HttpStatusCode.Unauthorized, verify(token).status)
-    }
-
-    @Test
-    fun `unknown token returns 401 and an invalid device id returns 400`() = authTest {
-        assertEquals(HttpStatusCode.Unauthorized, verify("not-a-real-token").status)
-        assertEquals(HttpStatusCode.BadRequest, verify("not-a-real-token", deviceId = "bad id!").status)
     }
 }

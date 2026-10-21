@@ -1,18 +1,14 @@
 package de.trustylynx
 
-import de.trustylynx.api.LoginDeviceDto
 import de.trustylynx.api.LoginResponse
 import de.trustylynx.api.PreloginResponse
 import de.trustylynx.api.RegisterResponse
 import de.trustylynx.api.VerifySessionResponse
 import de.trustylynx.common.AppJson
-import de.trustylynx.common.DEVICE_ID_HEADER
 import de.trustylynx.common.ErrorResponse
 import de.trustylynx.common.decodeBase64OrNull
 import de.trustylynx.common.toBase64
-import de.trustylynx.domain.DeviceStatus
 import de.trustylynx.domain.KdfParams
-import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -23,6 +19,7 @@ import io.ktor.http.contentType
 import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class AccountRoutesTest {
@@ -72,7 +69,6 @@ class AccountRoutesTest {
     fun `malformed json returns 400`() = authTest {
         val response = client.post("/register") {
             contentType(ContentType.Application.Json)
-            header(DEVICE_ID_HEADER, DEVICE_A)
             setBody("{\"email\":")
         }
 
@@ -112,7 +108,7 @@ class AccountRoutesTest {
     }
 
     @Test
-    fun `T7 login with correct data returns 200 with token, userId and deviceStatus`() = authTest {
+    fun `T7 login with correct data returns 200 with token and userId`() = authTest {
         val registered = registered()
 
         val response = login()
@@ -120,7 +116,6 @@ class AccountRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
         val body = AppJson.decodeFromString<LoginResponse>(response.bodyAsText())
         assertEquals(registered.userId, body.userId)
-        assertEquals(DeviceStatus.TRUSTED, body.deviceStatus)
         assertEquals(HttpStatusCode.OK, verify(body.token).status)
     }
 
@@ -161,23 +156,15 @@ class AccountRoutesTest {
     }
 
     @Test
-    fun `T10 second login on the same device invalidates the old token`() = authTest {
+    fun `T10 two logins return two different tokens that both pass verify`() = authTest {
         registered()
         val first = AppJson.decodeFromString<LoginResponse>(login().bodyAsText())
 
         val second = AppJson.decodeFromString<LoginResponse>(login().bodyAsText())
 
-        assertEquals(HttpStatusCode.Unauthorized, verify(first.token).status)
+        assertNotEquals(first.token, second.token)
+        assertEquals(HttpStatusCode.OK, verify(first.token).status)
         assertEquals(HttpStatusCode.OK, verify(second.token).status)
-    }
-
-    @Test
-    fun `login with an invalid public key for a new device returns 400`() = authTest {
-        registered()
-
-        val response = login(deviceId = DEVICE_B, device = LoginDeviceDto(name = "Linux", publicKey = SALT_LOGIN.toBase64()))
-
-        assertEquals(HttpStatusCode.BadRequest, response.status)
     }
 
     @Test
@@ -191,21 +178,22 @@ class AccountRoutesTest {
     }
 
     @Test
-    fun `logout keeps the sessions of other devices`() = authTest {
-        val tokenA = registered().token
-        val tokenB = AppJson.decodeFromString<LoginResponse>(login(deviceId = DEVICE_B).bodyAsText()).token
+    fun `logout keeps the other sessions of the user`() = authTest {
+        registered()
+        val first = AppJson.decodeFromString<LoginResponse>(login().bodyAsText()).token
+        val second = AppJson.decodeFromString<LoginResponse>(login().bodyAsText()).token
 
-        assertEquals(HttpStatusCode.NoContent, logout(tokenA).status)
+        assertEquals(HttpStatusCode.NoContent, logout(first).status)
 
-        assertEquals(HttpStatusCode.OK, verify(tokenB, deviceId = DEVICE_B).status)
+        assertEquals(HttpStatusCode.Unauthorized, verify(first).status)
+        assertEquals(HttpStatusCode.OK, verify(second).status)
     }
 
     @Test
-    fun `logout without token or from another device returns 401`() = authTest {
+    fun `logout without token returns 401`() = authTest {
         val token = registered().token
 
         assertEquals(HttpStatusCode.Unauthorized, logout(null).status)
-        assertEquals(HttpStatusCode.Unauthorized, logout(token, deviceId = DEVICE_B).status)
         assertEquals(HttpStatusCode.OK, verify(token).status)
     }
 }

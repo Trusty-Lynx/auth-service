@@ -1,6 +1,5 @@
 package de.trustylynx.api
 
-import de.trustylynx.common.deviceIdHeader
 import de.trustylynx.common.toBase64
 import de.trustylynx.domain.AccountService
 import de.trustylynx.domain.SessionService
@@ -22,15 +21,15 @@ fun Route.accountRoutes(accounts: AccountService, sessions: SessionService) {
     }
 
     post("/register") {
-        val account = call.receive<RegisterRequest>().validate(call.deviceIdHeader())
+        val account = call.receive<RegisterRequest>().validate()
         val registered = accounts.register(account)
         call.respond(HttpStatusCode.Created, RegisterResponse(userId = registered.userId, token = registered.token))
     }
 
     post("/login") {
-        val attempt = call.receive<LoginRequest>().validate(call.deviceIdHeader())
+        val attempt = call.receive<LoginRequest>().validate()
         val loggedIn = accounts.login(attempt)
-        call.respond(LoginResponse(token = loggedIn.token, userId = loggedIn.userId, deviceStatus = loggedIn.deviceStatus))
+        call.respond(LoginResponse(token = loggedIn.token, userId = loggedIn.userId))
     }
 
     post("/logout") {
