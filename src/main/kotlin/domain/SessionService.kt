@@ -14,14 +14,13 @@ class SessionService(
     private val clock: Clock,
     private val tokenTtl: Duration,
 ) {
-    suspend fun issue(userId: String, deviceId: String): String {
+    suspend fun issue(userId: String): String {
         val token = secureRandomBytes(TOKEN_LENGTH).toBase64()
         val now = clock.instant()
-        sessions.upsert(
+        sessions.create(
             Session(
                 sessionId = Uuid.random().toString(),
                 userId = userId,
-                deviceId = deviceId,
                 tokenHash = hash(token),
                 createdAt = now,
                 expiresAt = now.plus(tokenTtl),
@@ -32,7 +31,7 @@ class SessionService(
 
     suspend fun verify(presented: PresentedToken): Session {
         val session = sessions.findByTokenHash(hash(presented.token)) ?: throw Unauthorized()
-        if (!session.expiresAt.isAfter(clock.instant()) || session.deviceId != presented.deviceId) throw Unauthorized()
+        if (!session.expiresAt.isAfter(clock.instant())) throw Unauthorized()
         return session
     }
 

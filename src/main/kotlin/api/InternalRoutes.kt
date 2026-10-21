@@ -19,7 +19,6 @@ fun Route.internalRoutes(sessions: SessionService, gatewayToken: String) {
             call.respond(
                 VerifySessionResponse(
                     userId = session.userId,
-                    deviceId = session.deviceId,
                     sessionId = session.sessionId,
                     expiresAt = session.expiresAt.epochSecond,
                 ),

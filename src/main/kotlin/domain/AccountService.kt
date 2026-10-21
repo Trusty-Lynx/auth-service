@@ -46,7 +46,7 @@ class AccountService(
         )
         return transactions.inTransaction {
             users.create(user)
-            val token = sessions.issue(userId, account.device.id)
+            val token = sessions.issue(userId)
             RegisteredAccount(userId = userId, token = token)
         }
     }
@@ -55,10 +55,9 @@ class AccountService(
         rateLimiter.checkAllowed(attempt.email)
         try {
             val user = authenticate(attempt)
-            val status = DeviceStatus.TRUSTED
-            val token = sessions.issue(user.userId, attempt.deviceId)
+            val token = sessions.issue(user.userId)
             rateLimiter.reset(attempt.email)
-            return LoggedIn(token = token, userId = user.userId, deviceStatus = status)
+            return LoggedIn(token = token, userId = user.userId)
         } catch (e: Unauthorized) {
             rateLimiter.recordFailure(attempt.email)
             throw e

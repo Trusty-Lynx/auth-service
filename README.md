@@ -12,7 +12,7 @@ Kotlin 2.4 · Ktor 3.6 · PostgreSQL 17 · Java 21
 | `GET` | `/prelogin?email=…` | Salt und Argon2-Parameter für das Kontopasswort. Unbekannte E-Mails bekommen ein Fake-Salt |
 | `POST` | `/register` | Konto und erste Session anlegen, liefert `userId` und Login-Token |
 | `POST` | `/login` | Anmelden mit E-Mail und `loginKey`, liefert einen neuen Login-Token |
-| `POST` | `/logout` | Session dieses Geräts beenden (`Authorization: Bearer …`) |
+| `POST` | `/logout` | Session dieses Tokens beenden (`Authorization: Bearer …`) |
 | `POST` | `/internal/sessions/verify` | Login-Token prüfen. Nur für das Gateway (`X-Service-Token`) |
 | `GET` | `/health` | `200`, wenn Service und Datenbank laufen, sonst `503` |
 
@@ -65,8 +65,5 @@ Die `.env` liegt nur auf dem Server.
 
 ## Offen
 
-- **Guard anbinden:** `POST /internal/devices/check` bei der Registrierung (innerhalb der Transaktion) und beim Login aufrufen.
-  Beim Login gilt: `trusted`/`unknown` weiter, `blocked` → `403`, `409` oder `404` → `401`.
-  Bis dahin gilt jedes Gerät als `trusted`. Dazu `GUARD_SERVICE_URL` in `AppConfig` und `.env.example` aufnehmen.
 - **Key-Service-Pfad:** Der Code ruft `POST /internal/users/create`, die Doku nennt `POST /internal/users/{userId}/keys`. Eins von beiden angleichen.
 

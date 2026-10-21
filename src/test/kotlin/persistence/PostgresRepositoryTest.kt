@@ -61,24 +61,25 @@ class PostgresRepositoryTest {
     }
 
     @Test
-    fun `upsert replaces the session of the same device and keeps other devices`() = runBlocking {
+    fun `create stores two sessions for the same user`() = runBlocking {
         users.create(user())
-        sessions.upsert(session("session-1", deviceId = "device-a", hash = 1))
-        sessions.upsert(session("session-2", deviceId = "device-b", hash = 2))
 
-        sessions.upsert(session("session-3", deviceId = "device-a", hash = 3))
+        sessions.create(session("session-1", hash = 1))
+        sessions.create(session("session-2", hash = 2))
 
-        assertNull(sessions.findByTokenHash(tokenHash(1)))
-        assertEquals("session-2", sessions.findByTokenHash(tokenHash(2))?.sessionId)
-        val replaced = assertNotNull(sessions.findByTokenHash(tokenHash(3)))
-        assertEquals("session-3", replaced.sessionId)
-        assertEquals(EXPIRES_AT, replaced.expiresAt)
+        val first = assertNotNull(sessions.findByTokenHash(tokenHash(1)))
+        assertEquals("session-1", first.sessionId)
+        assertEquals("user-1", first.userId)
+        assertEquals(EXPIRES_AT, first.expiresAt)
+        val second = assertNotNull(sessions.findByTokenHash(tokenHash(2)))
+        assertEquals("session-2", second.sessionId)
+        assertEquals("user-1", second.userId)
     }
 
     @Test
     fun `delete reports whether the session existed`() = runBlocking {
         users.create(user())
-        sessions.upsert(session("session-1", deviceId = "device-a", hash = 1))
+        sessions.create(session("session-1", hash = 1))
 
         assertTrue(sessions.delete("session-1"))
         assertFalse(sessions.delete("session-1"))
@@ -89,8 +90,8 @@ class PostgresRepositoryTest {
         assertFailsWith<IllegalStateException> {
             transactions.inTransaction {
                 users.create(user())
-                sessions.upsert(session("session-1", deviceId = "device-a", hash = 1))
-                error("guard failed")
+                sessions.create(session("session-1", hash = 1))
+                error("later step failed")
             }
         }
 
@@ -107,10 +108,9 @@ class PostgresRepositoryTest {
         loginVerifier = ByteArray(32) { 3 },
     )
 
-    private fun session(sessionId: String, deviceId: String, hash: Int) = Session(
+    private fun session(sessionId: String, hash: Int) = Session(
         sessionId = sessionId,
         userId = "user-1",
-        deviceId = deviceId,
         tokenHash = tokenHash(hash),
         createdAt = CREATED_AT,
         expiresAt = EXPIRES_AT,

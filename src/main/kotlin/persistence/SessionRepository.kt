@@ -8,7 +8,7 @@ import java.time.ZoneOffset
 import javax.sql.DataSource
 
 interface SessionRepository {
-    suspend fun upsert(session: Session)
+    suspend fun create(session: Session)
 
     suspend fun findByTokenHash(tokenHash: ByteArray): Session?
 
@@ -17,25 +17,19 @@ interface SessionRepository {
 
 class PostgresSessionRepository(private val dataSource: DataSource) : SessionRepository {
 
-    override suspend fun upsert(session: Session) {
+    override suspend fun create(session: Session) {
         dataSource.withConnection { connection ->
             connection.prepareStatement(
                 """
-                INSERT INTO sessions (session_id, user_id, device_id, token_hash, created_at, expires_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON CONFLICT (user_id, device_id) DO UPDATE SET
-                    session_id = EXCLUDED.session_id,
-                    token_hash = EXCLUDED.token_hash,
-                    created_at = EXCLUDED.created_at,
-                    expires_at = EXCLUDED.expires_at
+                INSERT INTO sessions (session_id, user_id, token_hash, created_at, expires_at)
+                VALUES (?, ?, ?, ?, ?)
                 """.trimIndent(),
             ).use { statement ->
                 statement.setString(1, session.sessionId)
                 statement.setString(2, session.userId)
-                statement.setString(3, session.deviceId)
-                statement.setBytes(4, session.tokenHash)
-                statement.setObject(5, session.createdAt.atOffset(ZoneOffset.UTC))
-                statement.setObject(6, session.expiresAt.atOffset(ZoneOffset.UTC))
+                statement.setBytes(3, session.tokenHash)
+                statement.setObject(4, session.createdAt.atOffset(ZoneOffset.UTC))
+                statement.setObject(5, session.expiresAt.atOffset(ZoneOffset.UTC))
                 statement.executeUpdate()
             }
         }
@@ -44,7 +38,7 @@ class PostgresSessionRepository(private val dataSource: DataSource) : SessionRep
     override suspend fun findByTokenHash(tokenHash: ByteArray): Session? = dataSource.withConnection { connection ->
         connection.prepareStatement(
             """
-            SELECT session_id, user_id, device_id, token_hash, created_at, expires_at
+            SELECT session_id, user_id, token_hash, created_at, expires_at
             FROM sessions WHERE token_hash = ?
             """.trimIndent(),
         ).use { statement ->
@@ -63,7 +57,6 @@ class PostgresSessionRepository(private val dataSource: DataSource) : SessionRep
     private fun ResultSet.toSession() = Session(
         sessionId = getString("session_id"),
         userId = getString("user_id"),
-        deviceId = getString("device_id"),
         tokenHash = getBytes("token_hash"),
         createdAt = getObject("created_at", OffsetDateTime::class.java).toInstant(),
         expiresAt = getObject("expires_at", OffsetDateTime::class.java).toInstant(),
