@@ -11,9 +11,9 @@ CREATE TABLE users (
 CREATE TABLE sessions (
     session_id  TEXT        PRIMARY KEY,                    -- UUID als String
     user_id     TEXT        NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    device_id   TEXT        NOT NULL,                       -- kein Fremdschlüssel, Geräte liegen in der Guard-DB
     token_hash  BYTEA       NOT NULL UNIQUE CHECK (octet_length(token_hash) = 32),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    expires_at  TIMESTAMPTZ NOT NULL
+    expires_at  TIMESTAMPTZ NOT NULL,
+    UNIQUE (user_id, device_id)                             -- E5: eine Session je Nutzer und Gerät
 );
-
-CREATE INDEX sessions_user_id ON sessions (user_id);       -- mehrere Sessions je Nutzer
