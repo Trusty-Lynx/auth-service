@@ -42,8 +42,7 @@ class InMemoryUserRepository : UserRepository {
 class InMemorySessionRepository : SessionRepository {
     val sessions = ConcurrentHashMap<String, Session>()
 
-    override suspend fun upsert(session: Session) {
-        sessions.values.removeIf { it.userId == session.userId && it.deviceId == session.deviceId }
+    override suspend fun create(session: Session) {
         sessions[session.sessionId] = session
     }
 

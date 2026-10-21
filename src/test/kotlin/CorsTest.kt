@@ -1,7 +1,6 @@
 package de.trustylynx
 
 import de.trustylynx.common.CorsConfig
-import de.trustylynx.common.DEVICE_ID_HEADER
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.options
@@ -38,19 +37,27 @@ class CorsTest {
     }
 
     @Test
-    fun `a preflight from a local origin allows json and the device id`() = authTest {
-        val response = preflight("http://localhost:3000", "content-type,x-device-id")
+    fun `a preflight from a local origin allows json and the bearer token`() = authTest {
+        val response = preflight("http://localhost:3000", "content-type,authorization")
 
         assertTrue(response.status.value in 200..299, "status ${response.status}")
         assertEquals("http://localhost:3000", response.allowOrigin())
         val allowed = assertNotNull(response.headers[HttpHeaders.AccessControlAllowHeaders]).lowercase()
         assertTrue("content-type" in allowed)
-        assertTrue("x-device-id" in allowed)
+        assertTrue("authorization" in allowed)
     }
 
     @Test
     fun `a preflight with an unknown header is rejected`() = authTest {
-        val response = preflight("http://localhost:3000", "content-type,x-device-id,x-evil")
+        val response = preflight("http://localhost:3000", "content-type,authorization,x-evil")
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+        assertNull(response.allowOrigin())
+    }
+
+    @Test
+    fun `a preflight with x-device-id is rejected`() = authTest {
+        val response = preflight("http://localhost:3000", "content-type,x-device-id")
 
         assertEquals(HttpStatusCode.Forbidden, response.status)
         assertNull(response.allowOrigin())
@@ -61,7 +68,6 @@ class CorsTest {
         val response = client.post("/register") {
             header(HttpHeaders.Origin, LIVE_SERVER)
             contentType(ContentType.Application.Json)
-            header(DEVICE_ID_HEADER, DEVICE_A)
             setBody("{\"email\":")
         }
 
@@ -81,7 +87,7 @@ class CorsTest {
     fun `the null origin is allowed when enabled`() = authTest(CorsConfig(allowNullOrigin = true)) {
         assertEquals("null", preloginFrom("null").allowOrigin())
 
-        val preflight = preflight("null", "content-type,x-device-id")
+        val preflight = preflight("null", "content-type,authorization")
         assertTrue(preflight.status.value in 200..299, "status ${preflight.status}")
         assertEquals("null", preflight.allowOrigin())
     }

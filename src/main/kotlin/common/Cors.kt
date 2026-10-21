@@ -47,9 +47,6 @@ fun Application.configureCors(config: CorsConfig) {
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.XRequestId)
-        allowHeader(DEVICE_ID_HEADER)
-        allowHeader("X-Timestamp")
-        allowHeader("X-Device-Sig")
         exposeHeader(HttpHeaders.XRequestId)
         exposeHeader(HttpHeaders.RetryAfter)
     }

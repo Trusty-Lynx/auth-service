@@ -1,6 +1,5 @@
 package de.trustylynx.api
 
-import de.trustylynx.domain.DeviceStatus
 import de.trustylynx.domain.KdfParams
 import kotlinx.serialization.Serializable
 
@@ -13,31 +12,19 @@ data class RegisterRequest(
     val salt: String,
     val kdf: KdfParams,
     val loginKey: String,
-    val device: DeviceDto,
 )
-
-@Serializable
-data class DeviceDto(val id: String? = null, val name: String, val publicKey: String)
 
 @Serializable
 data class RegisterResponse(val userId: String, val token: String)
 
 @Serializable
-data class LoginRequest(val email: String, val loginKey: String, val device: LoginDeviceDto? = null)
+data class LoginRequest(val email: String, val loginKey: String)
 
 @Serializable
-data class LoginDeviceDto(val name: String, val publicKey: String)
+data class LoginResponse(val token: String, val userId: String)
 
 @Serializable
-data class LoginResponse(val token: String, val userId: String, val deviceStatus: DeviceStatus)
+data class VerifySessionRequest(val token: String)
 
 @Serializable
-data class VerifySessionRequest(val token: String, val deviceId: String)
-
-@Serializable
-data class VerifySessionResponse(
-    val userId: String,
-    val deviceId: String,
-    val sessionId: String,
-    val expiresAt: Long,
-)
+data class VerifySessionResponse(val userId: String, val sessionId: String, val expiresAt: Long)
