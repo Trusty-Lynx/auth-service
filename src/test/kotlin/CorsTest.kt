@@ -76,6 +76,14 @@ class CorsTest {
     }
 
     @Test
+    fun `the frontend origin may call the api without configuration`() = authTest {
+        val response = preflight("https://trustylynx.nexvent.de", "content-type")
+
+        assertTrue(response.status.value in 200..299, "status ${response.status}")
+        assertEquals("https://trustylynx.nexvent.de", response.allowOrigin())
+    }
+
+    @Test
     fun `a configured origin may call the api`() = authTest(CorsConfig(allowedOrigins = setOf(APP_ORIGIN))) {
         val response = preloginFrom(APP_ORIGIN)
 

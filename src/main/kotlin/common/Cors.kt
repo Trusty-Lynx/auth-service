@@ -5,6 +5,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.cors.routing.CORS
 
+private const val FRONTEND_ORIGIN = "https://trustylynx.nexvent.de"
 private val LOCAL_ORIGIN = Regex("""^http://(localhost|127\.0\.0\.1):\d+$""")
 private val ORIGIN = Regex("""^https?://[a-z0-9.-]+(:\d+)?$""")
 
@@ -38,6 +39,7 @@ fun Application.configureCors(config: CorsConfig) {
     install(CORS) {
         allowOrigins { origin ->
             LOCAL_ORIGIN.matches(origin) ||
+                origin == FRONTEND_ORIGIN ||
                 origin in config.allowedOrigins ||
                 // `Origin: null` schicken nicht nur lokal geöffnete Dateien, sondern auch sandboxed iframes und
                 // manche Redirects, also potenziell jede Website. Nur für die lokale Entwicklung, auf dem Server
