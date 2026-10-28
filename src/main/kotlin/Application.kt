@@ -16,7 +16,6 @@ import de.trustylynx.common.migrateDatabase
 import de.trustylynx.domain.AccountService
 import de.trustylynx.domain.SessionService
 import de.trustylynx.persistence.PostgresSessionRepository
-import de.trustylynx.persistence.PostgresTransactions
 import de.trustylynx.persistence.PostgresUserRepository
 import de.trustylynx.security.LoginRateLimiter
 import io.ktor.server.application.Application
@@ -47,14 +46,15 @@ fun Application.module() {
         users = PostgresUserRepository(dataSource),
         sessions = sessions,
         keys = keys,
-        transactions = PostgresTransactions(dataSource),
         rateLimiter = LoginRateLimiter(clock),
         preloginSecret = config.preloginSecret,
+        clock = clock,
     )
 
     configureApp(accounts, sessions, config.serviceTokenGateway, config.cors) { dataSource.isReachable() }
 }
 
+/** Plugins und Routen. Getrennt von [module], damit die Tests sie mit Fakes statt Datenbank starten können. */
 fun Application.configureApp(
     accounts: AccountService,
     sessions: SessionService,

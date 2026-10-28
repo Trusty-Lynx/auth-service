@@ -13,6 +13,7 @@ import io.ktor.server.request.path
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 
+/** Macht aus jeder Exception eine JSON-Antwort im Format von [ErrorResponse]. */
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<ApiException> { call, cause ->
@@ -29,13 +30,14 @@ fun Application.configureStatusPages() {
             call.respond(HttpStatusCode.BadGateway, ErrorResponse("upstream_error"))
         }
         exception<Throwable> { call, cause ->
+            // Fehler, für die Ktor selbst einen Status kennt, z. B. 415 bei falschem Content-Type.
             val status = defaultExceptionStatusCode(cause)
             if (status != null) {
                 call.respond(status, ErrorResponse(status.description.lowercase().replace(' ', '_')))
-                return@exception
+            } else {
+                call.application.log.error("Unhandled error on ${call.request.httpMethod.value} ${call.request.path()}", cause)
+                call.respond(HttpStatusCode.InternalServerError, ErrorResponse("internal_error"))
             }
-            call.application.log.error("Unhandled error on ${call.request.httpMethod.value} ${call.request.path()}", cause)
-            call.respond(HttpStatusCode.InternalServerError, ErrorResponse("internal_error"))
         }
     }
 }

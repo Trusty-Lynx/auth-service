@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
 import org.testcontainers.DockerClientFactory
 import org.testcontainers.postgresql.PostgreSQLContainer
+import java.sql.SQLException
 import java.time.Instant
 import javax.sql.DataSource
 import kotlin.test.BeforeTest
@@ -27,7 +28,6 @@ class PostgresRepositoryTest {
 
     private val users by lazy { PostgresUserRepository(database) }
     private val sessions by lazy { PostgresSessionRepository(database) }
-    private val transactions by lazy { PostgresTransactions(database) }
 
     @BeforeTest
     fun cleanDatabase() {
@@ -37,7 +37,7 @@ class PostgresRepositoryTest {
 
     @Test
     fun `a created user is found by email with all fields`() = runBlocking {
-        users.create(user())
+        users.create(user(), session("session-1", hash = 1))
 
         val found = assertNotNull(users.findByEmail("alice@example.com"))
         assertEquals("user-1", found.userId)
@@ -45,6 +45,56 @@ class PostgresRepositoryTest {
         assertContentEquals(ByteArray(16) { 1 }, found.saltLogin)
         assertContentEquals(ByteArray(16) { 2 }, found.saltSLogin)
         assertContentEquals(ByteArray(32) { 3 }, found.loginVerifier)
+        assertContentEquals(ByteArray(20) { 4 }, found.totpSecret)
+        assertEquals(100L, found.totpLastStep)
+    }
+
+    @Test
+    fun `a user without totp is stored with null`() = runBlocking {
+        users.create(user(totp = false), session("session-1", hash = 1))
+
+        val found = assertNotNull(users.findByEmail("alice@example.com"))
+        assertNull(found.totpSecret)
+        assertNull(found.totpLastStep)
+    }
+
+    @Test
+    fun `a totp step is only marked as used when it is newer`() = runBlocking {
+        users.create(user(), session("session-1", hash = 1))
+
+        assertFalse(users.markTotpStepUsed("user-1", 100))
+        assertFalse(users.markTotpStepUsed("user-1", 99))
+        assertTrue(users.markTotpStepUsed("user-1", 101))
+        assertFalse(users.markTotpStepUsed("user-1", 101))
+
+        assertEquals(101L, users.findByEmail("alice@example.com")?.totpLastStep)
+    }
+
+    @Test
+    fun `no totp step is marked for a user without totp`() = runBlocking {
+        users.create(user(totp = false), session("session-1", hash = 1))
+
+        assertFalse(users.markTotpStepUsed("user-1", 101))
+    }
+
+    @Test
+    fun `totp is only enabled for a user without totp`() = runBlocking {
+        users.create(user(totp = false), session("session-1", hash = 1))
+
+        assertTrue(users.enableTotp("user-1", ByteArray(20) { 5 }, 200))
+        assertFalse(users.enableTotp("user-1", ByteArray(20) { 6 }, 201))
+
+        val found = assertNotNull(users.findByEmail("alice@example.com"))
+        assertContentEquals(ByteArray(20) { 5 }, found.totpSecret)
+        assertEquals(200L, found.totpLastStep)
+    }
+
+    @Test
+    fun `a totp secret with the wrong length is rejected by the database`() = runBlocking {
+        users.create(user(totp = false), session("session-1", hash = 1))
+
+        assertFailsWith<SQLException> { users.enableTotp("user-1", ByteArray(16), 200) }
+        Unit
     }
 
     @Test
@@ -54,17 +104,18 @@ class PostgresRepositoryTest {
 
     @Test
     fun `a second user with the same email is rejected`() = runBlocking {
-        users.create(user(userId = "user-1"))
+        users.create(user(userId = "user-1"), session("session-1", hash = 1))
 
-        assertFailsWith<AlreadyExists> { users.create(user(userId = "user-2")) }
-        Unit
+        assertFailsWith<AlreadyExists> {
+            users.create(user(userId = "user-2"), session("session-2", hash = 2, userId = "user-2"))
+        }
+        assertNull(sessions.findByTokenHash(tokenHash(2)))
     }
 
     @Test
-    fun `create stores two sessions for the same user`() = runBlocking {
-        users.create(user())
+    fun `a user and a later session are both stored`() = runBlocking {
+        users.create(user(), session("session-1", hash = 1))
 
-        sessions.create(session("session-1", hash = 1))
         sessions.create(session("session-2", hash = 2))
 
         val first = assertNotNull(sessions.findByTokenHash(tokenHash(1)))
@@ -78,39 +129,36 @@ class PostgresRepositoryTest {
 
     @Test
     fun `delete reports whether the session existed`() = runBlocking {
-        users.create(user())
-        sessions.create(session("session-1", hash = 1))
+        users.create(user(), session("session-1", hash = 1))
 
         assertTrue(sessions.delete("session-1"))
         assertFalse(sessions.delete("session-1"))
     }
 
     @Test
-    fun `a failed transaction leaves nothing behind`() = runBlocking {
-        assertFailsWith<IllegalStateException> {
-            transactions.inTransaction {
-                users.create(user())
-                sessions.create(session("session-1", hash = 1))
-                error("later step failed")
-            }
-        }
+    fun `a user is not stored when its first session fails`() = runBlocking {
+        // Ein Token-Hash mit 31 statt 32 Bytes verletzt den CHECK in der Tabelle sessions.
+        val brokenSession = Session("session-1", "user-1", ByteArray(31), CREATED_AT, EXPIRES_AT)
+
+        assertFailsWith<SQLException> { users.create(user(), brokenSession) }
 
         assertNull(users.findByEmail("alice@example.com"))
-        assertNull(sessions.findByTokenHash(tokenHash(1)))
     }
 
-    private fun user(userId: String = "user-1") = User(
+    private fun user(userId: String = "user-1", totp: Boolean = true) = User(
         userId = userId,
         email = "alice@example.com",
         saltLogin = ByteArray(16) { 1 },
         kdfLogin = KdfParams.DEFAULT,
         saltSLogin = ByteArray(16) { 2 },
         loginVerifier = ByteArray(32) { 3 },
+        totpSecret = if (totp) ByteArray(20) { 4 } else null,
+        totpLastStep = if (totp) 100L else null,
     )
 
-    private fun session(sessionId: String, hash: Int) = Session(
+    private fun session(sessionId: String, hash: Int, userId: String = "user-1") = Session(
         sessionId = sessionId,
-        userId = "user-1",
+        userId = userId,
         tokenHash = tokenHash(hash),
         createdAt = CREATED_AT,
         expiresAt = EXPIRES_AT,
@@ -124,7 +172,7 @@ class PostgresRepositoryTest {
 
         val database: DataSource by lazy {
             val container = PostgreSQLContainer("postgres:17").apply { start() }
-            createDataSource(DbConfig(container.jdbcUrl, container.username, container.password, "test-db"))
+            createDataSource(DbConfig(container.jdbcUrl, container.username, container.password))
                 .also(::migrateDatabase)
         }
     }
