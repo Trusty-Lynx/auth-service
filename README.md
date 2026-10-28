@@ -10,13 +10,15 @@ Kotlin 2.4 · Ktor 3.6 · PostgreSQL 17 · Java 21
 | Methode | Pfad | Zweck |
 |---|---|---|
 | `GET` | `/prelogin?email=…` | Salt und Argon2-Parameter für das Kontopasswort. Unbekannte E-Mails bekommen ein Fake-Salt |
-| `POST` | `/register` | Konto und erste Session anlegen, liefert `userId` und Login-Token |
-| `POST` | `/login` | Anmelden mit E-Mail und `loginKey`, liefert einen neuen Login-Token |
+| `POST` | `/register` | Konto mit TOTP und erste Session anlegen, liefert `userId` und Login-Token |
+| `POST` | `/login` | Anmelden mit E-Mail, `loginKey` und TOTP-Code, liefert einen neuen Login-Token |
 | `POST` | `/logout` | Session dieses Tokens beenden (`Authorization: Bearer …`) |
+| `POST` | `/account/totp` | TOTP für ein Konto von vor TOTP nachträglich einrichten (`Authorization: Bearer …`) |
 | `POST` | `/internal/sessions/verify` | Login-Token prüfen. Nur für das Gateway (`X-Service-Token`) |
 | `GET` | `/health` | `200`, wenn Service und Datenbank laufen, sonst `503` |
 
 Das Gateway leitet `/api/…` ohne das Präfix weiter. Felder, Fehler und Beispiele: [API.md](API.md).
+TOTP im Frontend einbauen: [2FA-Frontend.md](2FA-Frontend.md).
 
 ## Struktur
 
@@ -27,10 +29,10 @@ src/main/kotlin/
 ├── api/             Routen und Request-/Response-Klassen
 ├── validation/      Requests prüfen und in Domain-Objekte übersetzen
 ├── domain/          Use Cases (AccountService, SessionService) und Modelle
-├── persistence/     Repositories (Interface + Postgres) und Transaktionen
+├── persistence/     Repositories (Interface + Postgres mit JDBC). Nutzer und erste Session in einer Transaktion
 ├── clients/         Aufrufe an andere Services (Key-Service)
-├── security/        Login-Verifier (Argon2id), Rate-Limit
-└── common/          gleich in allen Services: Fehler, JSON, Env, DB, HTTP-Client, Health, Request-ID
+├── security/        Login-Verifier (Argon2id), TOTP (RFC 6238), Rate-Limit
+└── common/          Bausteine ohne Fachlogik: Fehler, JSON, Env, DB-Setup, HTTP-Client, Health, CORS, Request-ID
 src/main/resources/db/migration/   Datenbankschema (Flyway)
 ```
 
@@ -65,5 +67,6 @@ Die `.env` liegt nur auf dem Server.
 
 ## Offen
 
+- **TOTP:** Das Secret liegt im Klartext in `users.totp_secret` (Verschlüsselung ist für Phase 2 geplant). Es gibt noch keine Wiederherstellungscodes und keinen Weg, das Secret zu tauschen oder TOTP abzuschalten.
 - **Key-Service-Pfad:** Der Code ruft `POST /internal/users/create`, die Doku nennt `POST /internal/users/{userId}/keys`. Eins von beiden angleichen.
 

@@ -12,6 +12,7 @@ class Session(
     override fun toString() = "Session(sessionId=$sessionId, userId=$userId)"
 }
 
-class PresentedToken(val token: String) {
-    override fun toString() = "PresentedToken()"
+/** Eine neue, noch nicht gespeicherte Session und ihr Login-Token. Gespeichert wird später nur der Hash des Tokens. */
+class NewSession(val session: Session, val token: String) {
+    override fun toString() = "NewSession($session)"
 }

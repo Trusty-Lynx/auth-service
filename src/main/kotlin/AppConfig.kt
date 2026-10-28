@@ -7,6 +7,7 @@ import de.trustylynx.common.env
 import de.trustylynx.common.envOrDev
 import java.time.Duration
 
+/** Alle Umgebungsvariablen an einer Stelle. Welche es gibt, steht in `.env.example`. */
 class AppConfig(
     val db: DbConfig,
     val keyServiceUrl: String,
@@ -16,6 +17,7 @@ class AppConfig(
     val loginTokenTtl: Duration,
     val cors: CorsConfig,
 ) {
+    // Ohne Tokens und Secret, damit davon nichts im Log landet.
     override fun toString(): String =
         "AppConfig(db=$db, keyServiceUrl=$keyServiceUrl, loginTokenTtl=$loginTokenTtl, cors=$cors)"
 
@@ -27,14 +29,16 @@ class AppConfig(
                 url = envOrDev("DB_URL", "jdbc:postgresql://localhost:5432/auth"),
                 user = envOrDev("DB_USER", "dev"),
                 password = envOrDev("DB_PASSWORD", "dev"),
-                poolName = "auth-db",
             ),
-            keyServiceUrl = env("KEY_SERVICE_URL", "https://key.nexvent.de"),
+            keyServiceUrl = env("KEY_SERVICE_URL", "https://key.nexvent.de").trimEnd('/'),
             serviceTokenAuth = envOrDev("SERVICE_TOKEN_AUTH", "rtvSCa1Fa&YhXXp8ffija%FytSmHCi=A"),
             serviceTokenGateway = envOrDev("SERVICE_TOKEN_GATEWAY", "dev-service-token-gateway"),
             preloginSecret = preloginSecret(envOrDev("PRELOGIN_SECRET", "ZGV2LXByZWxvZ2luLXNlY3JldC0zMi1ieXRlcy0hISE=")),
-            loginTokenTtl = Duration.ofSeconds(positiveLong("LOGIN_TOKEN_TTL_SECONDS", env("LOGIN_TOKEN_TTL_SECONDS", "43200"))),
-            cors = CorsConfig.fromEnv(),
+            loginTokenTtl = loginTokenTtl(env("LOGIN_TOKEN_TTL_SECONDS", "43200")),
+            cors = CorsConfig(
+                allowedOrigins = CorsConfig.parseAllowedOrigins(env("CORS_ALLOWED_ORIGINS", "")),
+                allowNullOrigin = CorsConfig.parseFlag("CORS_ALLOW_NULL_ORIGIN", env("CORS_ALLOW_NULL_ORIGIN", "false")),
+            ),
         )
 
         private fun preloginSecret(base64: String): ByteArray {
@@ -45,7 +49,10 @@ class AppConfig(
             return secret
         }
 
-        private fun positiveLong(name: String, value: String): Long =
-            value.toLongOrNull()?.takeIf { it > 0 } ?: error("$name must be a positive number")
+        private fun loginTokenTtl(seconds: String): Duration {
+            val value = seconds.toLongOrNull()
+            require(value != null && value > 0) { "LOGIN_TOKEN_TTL_SECONDS must be a positive number" }
+            return Duration.ofSeconds(value)
+        }
     }
 }

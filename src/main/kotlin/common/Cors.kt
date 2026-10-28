@@ -14,21 +14,18 @@ data class CorsConfig(
     val allowNullOrigin: Boolean = false,
 ) {
     companion object {
-        fun fromEnv() = CorsConfig(
-            allowedOrigins = parseAllowedOrigins(env("CORS_ALLOWED_ORIGINS", "")),
-            allowNullOrigin = parseFlag("CORS_ALLOW_NULL_ORIGIN", env("CORS_ALLOW_NULL_ORIGIN", "false")),
-        )
-
-        fun parseAllowedOrigins(value: String): Set<String> =
-            value.split(',')
+        /** Liest `CORS_ALLOWED_ORIGINS`, z. B. `https://a.de, http://b.de:8080`. */
+        fun parseAllowedOrigins(value: String): Set<String> {
+            val origins = value.split(',')
                 .map { it.trim().lowercase() }
                 .filter { it.isNotEmpty() }
-                .onEach {
-                    require(ORIGIN.matches(it)) {
-                        "CORS_ALLOWED_ORIGINS: invalid origin '$it', expected http(s)://host[:port]"
-                    }
+            for (origin in origins) {
+                require(ORIGIN.matches(origin)) {
+                    "CORS_ALLOWED_ORIGINS: invalid origin '$origin', expected http(s)://host[:port]"
                 }
-                .toSet()
+            }
+            return origins.toSet()
+        }
 
         fun parseFlag(name: String, value: String): Boolean =
             value.toBooleanStrictOrNull() ?: error("$name must be true or false")

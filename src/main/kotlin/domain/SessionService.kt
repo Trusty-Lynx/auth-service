@@ -14,29 +14,36 @@ class SessionService(
     private val clock: Clock,
     private val tokenTtl: Duration,
 ) {
-    suspend fun issue(userId: String): String {
+    /** Würfelt einen neuen Login-Token und baut die Session dazu, speichert aber noch nichts. */
+    fun newSession(userId: String): NewSession {
         val token = secureRandomBytes(TOKEN_LENGTH).toBase64()
         val now = clock.instant()
-        sessions.create(
-            Session(
-                sessionId = Uuid.random().toString(),
-                userId = userId,
-                tokenHash = hash(token),
-                createdAt = now,
-                expiresAt = now.plus(tokenTtl),
-            ),
+        val session = Session(
+            sessionId = Uuid.random().toString(),
+            userId = userId,
+            tokenHash = hash(token),
+            createdAt = now,
+            expiresAt = now.plus(tokenTtl),
         )
-        return token
+        return NewSession(session, token)
     }
 
-    suspend fun verify(presented: PresentedToken): Session {
-        val session = sessions.findByTokenHash(hash(presented.token)) ?: throw Unauthorized()
+    /** Legt eine neue Session an und gibt ihren Login-Token zurück. */
+    suspend fun issue(userId: String): String {
+        val newSession = newSession(userId)
+        sessions.create(newSession.session)
+        return newSession.token
+    }
+
+    /** Die Session zum Token, wenn es sie gibt und sie nicht abgelaufen ist. Sonst 401. */
+    suspend fun verify(token: String): Session {
+        val session = sessions.findByTokenHash(hash(token)) ?: throw Unauthorized()
         if (!session.expiresAt.isAfter(clock.instant())) throw Unauthorized()
         return session
     }
 
-    suspend fun logout(presented: PresentedToken) {
-        val session = verify(presented)
+    suspend fun logout(token: String) {
+        val session = verify(token)
         if (!sessions.delete(session.sessionId)) throw Unauthorized()
     }
 
