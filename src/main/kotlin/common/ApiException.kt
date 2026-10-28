@@ -3,11 +3,12 @@ package de.trustylynx.common
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.Serializable
 
+/** Fehler, die als JSON an den Client gehen. Beantwortet werden sie in StatusPages.kt. */
 sealed class ApiException(
     val status: HttpStatusCode,
     val code: String,
     val reason: String? = null,
-) : RuntimeException(code, null, false, false)
+) : RuntimeException(code)
 
 class BadRequest(reason: String) : ApiException(HttpStatusCode.BadRequest, "bad_request", reason)
 
@@ -15,13 +16,12 @@ class Unauthorized : ApiException(HttpStatusCode.Unauthorized, "unauthorized")
 
 class Forbidden : ApiException(HttpStatusCode.Forbidden, "forbidden")
 
-class NotFound : ApiException(HttpStatusCode.NotFound, "not_found")
-
 class AlreadyExists : ApiException(HttpStatusCode.Conflict, "already_exists")
 
 class TooManyRequests(val retryAfterSeconds: Long) :
     ApiException(HttpStatusCode.TooManyRequests, "too_many_requests")
 
+/** Ein anderer Service (Key-Service) hat nicht oder unbrauchbar geantwortet. Wird zu 502. */
 class UpstreamException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 @Serializable

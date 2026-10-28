@@ -3,72 +3,35 @@ package de.trustylynx.common
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withContext
 import org.flywaydb.core.Flyway
-import java.sql.Connection
 import java.sql.SQLException
 import javax.sql.DataSource
-import kotlin.coroutines.AbstractCoroutineContextElement
-import kotlin.coroutines.CoroutineContext
 
-class DbConfig(
-    val url: String,
-    val user: String,
-    val password: String,
-    val poolName: String,
-    val maximumPoolSize: Int = 10,
-) {
-    override fun toString(): String = "DbConfig(url=$url, user=$user, poolName=$poolName)"
+class DbConfig(val url: String, val user: String, val password: String) {
+    override fun toString(): String = "DbConfig(url=$url, user=$user)"
 }
 
-fun createDataSource(config: DbConfig): HikariDataSource = HikariDataSource(
-    HikariConfig().apply {
-        poolName = config.poolName
-        jdbcUrl = config.url
-        username = config.user
-        password = config.password
-        maximumPoolSize = config.maximumPoolSize
-        connectionTimeout = 5_000
-    },
-)
+/** Connection-Pool mit HikariCP (höchstens 10 Verbindungen, Hikari-Standard). */
+fun createDataSource(config: DbConfig): HikariDataSource {
+    val hikari = HikariConfig()
+    hikari.poolName = "auth-db"
+    hikari.jdbcUrl = config.url
+    hikari.username = config.user
+    hikari.password = config.password
+    hikari.connectionTimeout = 5_000
+    return HikariDataSource(hikari)
+}
 
+/** Spielt die SQL-Dateien aus `resources/db/migration` ein, die noch fehlen. */
 fun migrateDatabase(dataSource: DataSource) {
     Flyway.configure().dataSource(dataSource).load().migrate()
 }
 
-private class TransactionConnection(val connection: Connection) : AbstractCoroutineContextElement(Key) {
-    companion object Key : CoroutineContext.Key<TransactionConnection>
-}
-
-suspend fun <T> DataSource.withConnection(block: (Connection) -> T): T {
-    val transaction = currentCoroutineContext()[TransactionConnection]
-    return withContext(Dispatchers.IO) {
-        if (transaction != null) block(transaction.connection) else connection.use(block)
-    }
-}
-
-suspend fun DataSource.isReachable(): Boolean =
+suspend fun DataSource.isReachable(): Boolean = withContext(Dispatchers.IO) {
     try {
-        withConnection { it.isValid(2) }
+        connection.use { it.isValid(2) }
     } catch (_: SQLException) {
         false
-    }
-
-suspend fun <T> DataSource.inTransaction(block: suspend () -> T): T = withContext(Dispatchers.IO) {
-    connection.use { connection ->
-        connection.autoCommit = false
-        try {
-            val result = withContext(TransactionConnection(connection)) { block() }
-            connection.commit()
-            result
-        } catch (e: Throwable) {
-            try {
-                connection.rollback()
-            } catch (rollbackError: SQLException) {
-                e.addSuppressed(rollbackError)
-            }
-            throw e
-        }
     }
 }
