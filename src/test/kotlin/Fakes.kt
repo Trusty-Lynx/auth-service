@@ -1,13 +1,13 @@
 package de.trustylynx
 
 import de.trustylynx.clients.KeyServiceClient
-import de.trustylynx.common.AlreadyExists
-import de.trustylynx.common.UpstreamException
-import de.trustylynx.common.hmacSha256
-import de.trustylynx.domain.Session
-import de.trustylynx.domain.User
-import de.trustylynx.persistence.SessionRepository
-import de.trustylynx.persistence.UserRepository
+import de.trustylynx.models.AlreadyExists
+import de.trustylynx.models.Session
+import de.trustylynx.models.UpstreamException
+import de.trustylynx.models.User
+import de.trustylynx.repositories.SessionRepository
+import de.trustylynx.repositories.UserRepository
+import de.trustylynx.security.hmacSha256
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -47,12 +47,11 @@ class InMemoryUserRepository(private val sessions: InMemorySessionRepository) : 
         if (user.totpSecret == null) user.withTotp(secret, step) else null
     }
 
-    /** Macht aus einem Konto eins von vor TOTP. */
     fun removeTotp(userId: String) {
         users.computeIfPresent(userId) { _, user -> user.withTotp(null, null) }
     }
 
-    // Atomar wie das bedingte UPDATE in Postgres: [change] gibt den neuen Nutzer zurück oder null für "nichts ändern".
+    // atomic like the conditional UPDATE in postgres. change returns the new user, or null to leave it alone
     private fun updateIf(userId: String, change: (User) -> User?): Boolean {
         var updated = false
         users.computeIfPresent(userId) { _, user ->

@@ -1,23 +1,23 @@
 package de.trustylynx
 
-import de.trustylynx.api.accountRoutes
-import de.trustylynx.api.internalRoutes
 import de.trustylynx.clients.HttpKeyServiceClient
-import de.trustylynx.common.CorsConfig
-import de.trustylynx.common.configureCors
-import de.trustylynx.common.configureRequestLogging
-import de.trustylynx.common.configureSerialization
-import de.trustylynx.common.configureStatusPages
-import de.trustylynx.common.createDataSource
-import de.trustylynx.common.createServiceHttpClient
-import de.trustylynx.common.healthRoute
-import de.trustylynx.common.isReachable
-import de.trustylynx.common.migrateDatabase
-import de.trustylynx.domain.AccountService
-import de.trustylynx.domain.SessionService
-import de.trustylynx.persistence.PostgresSessionRepository
-import de.trustylynx.persistence.PostgresUserRepository
+import de.trustylynx.clients.createServiceHttpClient
+import de.trustylynx.plugins.CorsConfig
+import de.trustylynx.plugins.configureCors
+import de.trustylynx.plugins.configureRequestLogging
+import de.trustylynx.plugins.configureSerialization
+import de.trustylynx.plugins.configureStatusPages
+import de.trustylynx.repositories.PostgresSessionRepository
+import de.trustylynx.repositories.PostgresUserRepository
+import de.trustylynx.repositories.createDataSource
+import de.trustylynx.repositories.isReachable
+import de.trustylynx.repositories.migrateDatabase
+import de.trustylynx.routes.accountRoutes
+import de.trustylynx.routes.healthRoute
+import de.trustylynx.routes.internalRoutes
 import de.trustylynx.security.LoginRateLimiter
+import de.trustylynx.services.AccountService
+import de.trustylynx.services.SessionService
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.netty.EngineMain
@@ -54,7 +54,7 @@ fun Application.module() {
     configureApp(accounts, sessions, config.serviceTokenGateway, config.cors) { dataSource.isReachable() }
 }
 
-/** Plugins und Routen. Getrennt von [module], damit die Tests sie mit Fakes statt Datenbank starten können. */
+// separate from module() so the tests can start the app with fakes instead of a real db
 fun Application.configureApp(
     accounts: AccountService,
     sessions: SessionService,

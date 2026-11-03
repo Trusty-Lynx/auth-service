@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
-class CommonTest {
+class HealthAndRequestIdTest {
 
     @Test
     fun `health returns ok while the database is reachable`() = authTest {

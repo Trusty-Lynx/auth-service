@@ -1,7 +1,8 @@
-package de.trustylynx.api
+package de.trustylynx.models
 
-import de.trustylynx.domain.KdfParams
 import kotlinx.serialization.Serializable
+
+// the field names are the API, don't rename them
 
 @Serializable
 data class PreloginResponse(val salt: String, val kdf: KdfParams)
@@ -15,7 +16,6 @@ data class RegisterRequest(
     val totp: TotpSetupRequest,
 )
 
-/** Body von `POST /account/totp` und Feld `totp` in `POST /register`. */
 @Serializable
 data class TotpSetupRequest(val secret: String, val code: String)
 
@@ -33,3 +33,9 @@ data class VerifySessionRequest(val token: String)
 
 @Serializable
 data class VerifySessionResponse(val userId: String, val sessionId: String, val expiresAt: Long)
+
+@Serializable
+data class HealthResponse(val status: String)
+
+@Serializable
+data class ErrorResponse(val error: String, val reason: String? = null)

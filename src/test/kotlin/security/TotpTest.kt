@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 
 class TotpTest {
 
-    // RFC 6238, Anhang B (SHA-1). Die RFC listet 8 Ziffern, 6 Ziffern sind die letzten 6 davon.
+    // RFC 6238 appendix B (SHA-1). the RFC lists 8 digits, our 6 digit codes are the last 6 of those
     private val rfcSecret = "12345678901234567890".toByteArray(Charsets.US_ASCII)
 
     @Test

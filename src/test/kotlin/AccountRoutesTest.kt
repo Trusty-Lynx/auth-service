@@ -1,15 +1,15 @@
 package de.trustylynx
 
-import de.trustylynx.api.LoginResponse
-import de.trustylynx.api.PreloginResponse
-import de.trustylynx.api.RegisterResponse
-import de.trustylynx.api.VerifySessionResponse
-import de.trustylynx.common.AppJson
-import de.trustylynx.common.ErrorResponse
-import de.trustylynx.common.decodeBase64OrNull
-import de.trustylynx.common.toBase64
-import de.trustylynx.domain.KdfParams
+import de.trustylynx.models.ErrorResponse
+import de.trustylynx.models.KdfParams
+import de.trustylynx.models.LoginResponse
+import de.trustylynx.models.PreloginResponse
+import de.trustylynx.models.RegisterResponse
+import de.trustylynx.models.VerifySessionResponse
+import de.trustylynx.plugins.AppJson
 import de.trustylynx.security.Totp
+import de.trustylynx.security.decodeBase64OrNull
+import de.trustylynx.security.toBase64
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
