@@ -1,4 +1,4 @@
-package de.trustylynx.common
+package de.trustylynx.plugins
 
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.Application

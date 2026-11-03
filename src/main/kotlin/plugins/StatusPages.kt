@@ -1,5 +1,9 @@
-package de.trustylynx.common
+package de.trustylynx.plugins
 
+import de.trustylynx.models.ApiException
+import de.trustylynx.models.ErrorResponse
+import de.trustylynx.models.TooManyRequests
+import de.trustylynx.models.UpstreamException
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application

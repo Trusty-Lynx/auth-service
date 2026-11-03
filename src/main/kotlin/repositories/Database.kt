@@ -1,16 +1,15 @@
-package de.trustylynx.common
+package de.trustylynx.repositories
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.flywaydb.core.Flyway
+import java.sql.Connection
 import java.sql.SQLException
 import javax.sql.DataSource
 
-class DbConfig(val url: String, val user: String, val password: String) {
-    override fun toString(): String = "DbConfig(url=$url, user=$user)"
-}
+class DbConfig(val url: String, val user: String, val password: String)
 
 /** Connection-Pool mit HikariCP (höchstens 10 Verbindungen, Hikari-Standard). */
 fun createDataSource(config: DbConfig): HikariDataSource {
@@ -28,10 +27,12 @@ fun migrateDatabase(dataSource: DataSource) {
     Flyway.configure().dataSource(dataSource).load().migrate()
 }
 
-suspend fun DataSource.isReachable(): Boolean = withContext(Dispatchers.IO) {
-    try {
-        connection.use { it.isValid(2) }
-    } catch (_: SQLException) {
-        false
-    }
+/** Holt eine Verbindung aus dem Pool. Läuft auf dem IO-Thread-Pool, weil JDBC beim Warten den Thread blockiert. */
+suspend fun <T> DataSource.withConnection(block: (Connection) -> T): T =
+    withContext(Dispatchers.IO) { connection.use(block) }
+
+suspend fun DataSource.isReachable(): Boolean = try {
+    withConnection { it.isValid(2) }
+} catch (_: SQLException) {
+    false
 }

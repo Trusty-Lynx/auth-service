@@ -1,7 +1,8 @@
-package de.trustylynx.common
+package de.trustylynx.security
 
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -24,4 +25,12 @@ private fun hmac(algorithm: String, key: ByteArray, data: ByteArray): ByteArray 
     val mac = Mac.getInstance(algorithm)
     mac.init(SecretKeySpec(key, algorithm))
     return mac.doFinal(data)
+}
+
+fun ByteArray.toBase64(): String = Base64.getEncoder().encodeToString(this)
+
+fun String.decodeBase64OrNull(): ByteArray? = try {
+    Base64.getDecoder().decode(this)
+} catch (_: IllegalArgumentException) {
+    null
 }

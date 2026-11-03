@@ -1,13 +1,13 @@
 package de.trustylynx
 
 import de.trustylynx.clients.KeyServiceClient
-import de.trustylynx.common.AlreadyExists
-import de.trustylynx.common.UpstreamException
-import de.trustylynx.common.hmacSha256
-import de.trustylynx.domain.Session
-import de.trustylynx.domain.User
-import de.trustylynx.persistence.SessionRepository
-import de.trustylynx.persistence.UserRepository
+import de.trustylynx.models.AlreadyExists
+import de.trustylynx.models.Session
+import de.trustylynx.models.UpstreamException
+import de.trustylynx.models.User
+import de.trustylynx.repositories.SessionRepository
+import de.trustylynx.repositories.UserRepository
+import de.trustylynx.security.hmacSha256
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant

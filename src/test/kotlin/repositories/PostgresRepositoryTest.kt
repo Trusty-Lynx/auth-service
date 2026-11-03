@@ -1,12 +1,9 @@
-package de.trustylynx.persistence
+package de.trustylynx.repositories
 
-import de.trustylynx.common.AlreadyExists
-import de.trustylynx.common.DbConfig
-import de.trustylynx.common.createDataSource
-import de.trustylynx.common.migrateDatabase
-import de.trustylynx.domain.KdfParams
-import de.trustylynx.domain.Session
-import de.trustylynx.domain.User
+import de.trustylynx.models.AlreadyExists
+import de.trustylynx.models.KdfParams
+import de.trustylynx.models.Session
+import de.trustylynx.models.User
 import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
 import org.testcontainers.DockerClientFactory

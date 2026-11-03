@@ -1,7 +1,8 @@
-package de.trustylynx.api
+package de.trustylynx.models
 
-import de.trustylynx.domain.KdfParams
 import kotlinx.serialization.Serializable
+
+// Alles, was als JSON rein- oder rausgeht. Die Feldnamen sind die API und dürfen sich nicht ändern.
 
 @Serializable
 data class PreloginResponse(val salt: String, val kdf: KdfParams)
@@ -33,3 +34,10 @@ data class VerifySessionRequest(val token: String)
 
 @Serializable
 data class VerifySessionResponse(val userId: String, val sessionId: String, val expiresAt: Long)
+
+@Serializable
+data class HealthResponse(val status: String)
+
+/** Body jeder Fehlerantwort. `reason` gibt es nur bei `400`. */
+@Serializable
+data class ErrorResponse(val error: String, val reason: String? = null)

@@ -1,38 +1,43 @@
-package de.trustylynx.domain
+package de.trustylynx.services
 
-import de.trustylynx.common.Unauthorized
-import de.trustylynx.common.secureRandomBytes
-import de.trustylynx.common.sha256
-import de.trustylynx.common.toBase64
-import de.trustylynx.persistence.SessionRepository
+import de.trustylynx.models.Session
+import de.trustylynx.models.Unauthorized
+import de.trustylynx.repositories.SessionRepository
+import de.trustylynx.security.secureRandomBytes
+import de.trustylynx.security.sha256
+import de.trustylynx.security.toBase64
 import java.time.Clock
 import java.time.Duration
 import kotlin.uuid.Uuid
 
+private const val TOKEN_LENGTH = 32
+
+/** Login-Sessions: Token ausstellen, prüfen und beenden. */
 class SessionService(
     private val sessions: SessionRepository,
     private val clock: Clock,
     private val tokenTtl: Duration,
 ) {
-    /** Würfelt einen neuen Login-Token und baut die Session dazu, speichert aber noch nichts. */
-    fun newSession(userId: String): NewSession {
-        val token = secureRandomBytes(TOKEN_LENGTH).toBase64()
+    /** Würfelt einen neuen Login-Token. */
+    fun newToken(): String = secureRandomBytes(TOKEN_LENGTH).toBase64()
+
+    /** Baut die Session zu einem Token, speichert sie aber noch nicht. */
+    fun newSession(userId: String, token: String): Session {
         val now = clock.instant()
-        val session = Session(
+        return Session(
             sessionId = Uuid.random().toString(),
             userId = userId,
             tokenHash = hash(token),
             createdAt = now,
             expiresAt = now.plus(tokenTtl),
         )
-        return NewSession(session, token)
     }
 
     /** Legt eine neue Session an und gibt ihren Login-Token zurück. */
     suspend fun issue(userId: String): String {
-        val newSession = newSession(userId)
-        sessions.create(newSession.session)
-        return newSession.token
+        val token = newToken()
+        sessions.create(newSession(userId, token))
+        return token
     }
 
     /** Die Session zum Token, wenn es sie gibt und sie nicht abgelaufen ist. Sonst 401. */
@@ -48,8 +53,4 @@ class SessionService(
     }
 
     private fun hash(token: String): ByteArray = sha256(token.toByteArray(Charsets.UTF_8))
-
-    private companion object {
-        const val TOKEN_LENGTH = 32
-    }
 }

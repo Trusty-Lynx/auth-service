@@ -4,10 +4,11 @@ import org.bouncycastle.crypto.generators.Argon2BytesGenerator
 import org.bouncycastle.crypto.params.Argon2Parameters
 import java.security.MessageDigest
 
+/** Berechnet und prüft den Login-Verifier mit Argon2id. Nur dieser Hash liegt in der Datenbank. */
 object VerifierHasher {
-    const val MEMORY_KIB = 19456
-    const val ITERATIONS = 2
-    const val PARALLELISM = 1
+    private const val MEMORY_KIB = 19456
+    private const val ITERATIONS = 2
+    private const val PARALLELISM = 1
     const val LENGTH = 32
     const val SALT_LENGTH = 16
 

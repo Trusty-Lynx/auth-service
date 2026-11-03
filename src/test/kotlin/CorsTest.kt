@@ -1,6 +1,6 @@
 package de.trustylynx
 
-import de.trustylynx.common.CorsConfig
+import de.trustylynx.plugins.CorsConfig
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.options

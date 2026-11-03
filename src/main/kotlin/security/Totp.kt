@@ -1,6 +1,5 @@
 package de.trustylynx.security
 
-import de.trustylynx.common.hmacSha1
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.time.Duration
