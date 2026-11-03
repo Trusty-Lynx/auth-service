@@ -1,5 +1,6 @@
-package de.trustylynx.common
+package de.trustylynx.plugins
 
+import de.trustylynx.routes.HEALTH_PATH
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.Application
 import io.ktor.server.application.install

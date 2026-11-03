@@ -1,20 +1,19 @@
 package de.trustylynx
 
-import de.trustylynx.api.LoginRequest
-import de.trustylynx.api.RegisterRequest
-import de.trustylynx.api.RegisterResponse
-import de.trustylynx.api.TotpSetupRequest
-import de.trustylynx.api.VerifySessionRequest
-import de.trustylynx.common.AppJson
-import de.trustylynx.common.CorsConfig
-import de.trustylynx.common.ErrorResponse
-import de.trustylynx.common.SERVICE_TOKEN_HEADER
-import de.trustylynx.common.toBase64
-import de.trustylynx.domain.AccountService
-import de.trustylynx.domain.KdfParams
-import de.trustylynx.domain.SessionService
+import de.trustylynx.models.ErrorResponse
+import de.trustylynx.models.KdfParams
+import de.trustylynx.models.LoginRequest
+import de.trustylynx.models.RegisterRequest
+import de.trustylynx.models.RegisterResponse
+import de.trustylynx.models.TotpSetupRequest
+import de.trustylynx.models.VerifySessionRequest
+import de.trustylynx.plugins.AppJson
+import de.trustylynx.plugins.CorsConfig
 import de.trustylynx.security.LoginRateLimiter
 import de.trustylynx.security.Totp
+import de.trustylynx.security.toBase64
+import de.trustylynx.services.AccountService
+import de.trustylynx.services.SessionService
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
@@ -67,13 +66,11 @@ class AuthTestEnv {
         if (email != null) parameter("email", email)
     }
 
-    /** Der aktuelle Code der Authenticator-App zur Test-Uhr. */
     fun totpCode(secret: ByteArray = TOTP_SECRET): String = Totp.code(secret, Totp.step(clock.instant()))
 
-    /** Ein gültig aussehender Code, der gerade nicht passt. */
     fun wrongTotpCode(): String = Totp.code(TOTP_SECRET, Totp.step(clock.instant()) + 5)
 
-    /** Wartet auf den nächsten Code. Jeder Code gilt pro Konto nur einmal, auch der aus der Registrierung. */
+    // every code only works once per account, even the one from the registration
     fun nextTotpCode() = clock.advance(Totp.PERIOD)
 
     suspend fun register(email: String = EMAIL, totp: TotpSetupRequest = totpSetup()): HttpResponse =
@@ -98,7 +95,7 @@ class AuthTestEnv {
         return AppJson.decodeFromString(response.bodyAsText())
     }
 
-    /** Ein Konto von vor TOTP: registriert, dann das Secret wieder entfernt. */
+    // an account from before TOTP: register it, then take the secret away again
     suspend fun legacyAccount(email: String = EMAIL): RegisterResponse {
         val registered = registered(email)
         users.removeTotp(registered.userId)

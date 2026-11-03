@@ -1,5 +1,9 @@
-package de.trustylynx.common
+package de.trustylynx.plugins
 
+import de.trustylynx.models.ApiException
+import de.trustylynx.models.ErrorResponse
+import de.trustylynx.models.TooManyRequests
+import de.trustylynx.models.UpstreamException
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -13,7 +17,6 @@ import io.ktor.server.request.path
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 
-/** Macht aus jeder Exception eine JSON-Antwort im Format von [ErrorResponse]. */
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<ApiException> { call, cause ->
@@ -30,7 +33,7 @@ fun Application.configureStatusPages() {
             call.respond(HttpStatusCode.BadGateway, ErrorResponse("upstream_error"))
         }
         exception<Throwable> { call, cause ->
-            // Fehler, für die Ktor selbst einen Status kennt, z. B. 415 bei falschem Content-Type.
+            // stuff ktor already has a status for, like 415 for a wrong content type
             val status = defaultExceptionStatusCode(cause)
             if (status != null) {
                 call.respond(status, ErrorResponse(status.description.lowercase().replace(' ', '_')))

@@ -1,8 +1,8 @@
 package de.trustylynx
 
-import de.trustylynx.api.VerifySessionResponse
-import de.trustylynx.common.AppJson
-import de.trustylynx.common.ErrorResponse
+import de.trustylynx.models.ErrorResponse
+import de.trustylynx.models.VerifySessionResponse
+import de.trustylynx.plugins.AppJson
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlin.test.Test
