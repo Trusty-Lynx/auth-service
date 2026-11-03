@@ -13,7 +13,6 @@ import java.util.UUID
 
 private val REQUEST_ID = Regex("^[A-Za-z0-9._-]{1,128}$")
 
-/** Jede Anfrage bekommt eine `X-Request-Id`. Sie steht in jeder Logzeile und in der Antwort. */
 fun Application.configureRequestLogging() {
     install(CallId) {
         retrieveFromHeader(HttpHeaders.XRequestId)

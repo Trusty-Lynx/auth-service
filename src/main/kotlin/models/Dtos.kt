@@ -2,7 +2,7 @@ package de.trustylynx.models
 
 import kotlinx.serialization.Serializable
 
-// Alles, was als JSON rein- oder rausgeht. Die Feldnamen sind die API und dürfen sich nicht ändern.
+// the field names are the API, don't rename them
 
 @Serializable
 data class PreloginResponse(val salt: String, val kdf: KdfParams)
@@ -16,7 +16,6 @@ data class RegisterRequest(
     val totp: TotpSetupRequest,
 )
 
-/** Body von `POST /account/totp` und Feld `totp` in `POST /register`. */
 @Serializable
 data class TotpSetupRequest(val secret: String, val code: String)
 
@@ -38,6 +37,5 @@ data class VerifySessionResponse(val userId: String, val sessionId: String, val 
 @Serializable
 data class HealthResponse(val status: String)
 
-/** Body jeder Fehlerantwort. `reason` gibt es nur bei `400`. */
 @Serializable
 data class ErrorResponse(val error: String, val reason: String? = null)

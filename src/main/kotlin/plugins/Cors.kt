@@ -14,7 +14,6 @@ data class CorsConfig(
     val allowNullOrigin: Boolean = false,
 ) {
     companion object {
-        /** Liest `CORS_ALLOWED_ORIGINS`, z. B. `https://a.de, http://b.de:8080`. */
         fun parseAllowedOrigins(value: String): Set<String> {
             val origins = value.split(',')
                 .map { it.trim().lowercase() }
@@ -38,9 +37,8 @@ fun Application.configureCors(config: CorsConfig) {
             LOCAL_ORIGIN.matches(origin) ||
                 origin == FRONTEND_ORIGIN ||
                 origin in config.allowedOrigins ||
-                // `Origin: null` schicken nicht nur lokal geöffnete Dateien, sondern auch sandboxed iframes und
-                // manche Redirects, also potenziell jede Website. Nur für die lokale Entwicklung, auf dem Server
-                // bleibt CORS_ALLOW_NULL_ORIGIN false. Nie zusammen mit allowCredentials oder Cookies verwenden.
+                // "null" also comes from sandboxed iframes and some redirects, so pretty much any website can send it.
+                // local dev only: keep it off on the server and never combine it with cookies or credentials
                 (config.allowNullOrigin && origin == "null")
         }
         allowHeader(HttpHeaders.ContentType)

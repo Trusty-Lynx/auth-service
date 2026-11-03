@@ -11,7 +11,6 @@ import javax.sql.DataSource
 
 class DbConfig(val url: String, val user: String, val password: String)
 
-/** Connection-Pool mit HikariCP (höchstens 10 Verbindungen, Hikari-Standard). */
 fun createDataSource(config: DbConfig): HikariDataSource {
     val hikari = HikariConfig()
     hikari.poolName = "auth-db"
@@ -22,12 +21,11 @@ fun createDataSource(config: DbConfig): HikariDataSource {
     return HikariDataSource(hikari)
 }
 
-/** Spielt die SQL-Dateien aus `resources/db/migration` ein, die noch fehlen. */
 fun migrateDatabase(dataSource: DataSource) {
     Flyway.configure().dataSource(dataSource).load().migrate()
 }
 
-/** Holt eine Verbindung aus dem Pool. Läuft auf dem IO-Thread-Pool, weil JDBC beim Warten den Thread blockiert. */
+// jdbc blocks the thread while it waits, so this has to run on the IO pool
 suspend fun <T> DataSource.withConnection(block: (Connection) -> T): T =
     withContext(Dispatchers.IO) { connection.use(block) }
 

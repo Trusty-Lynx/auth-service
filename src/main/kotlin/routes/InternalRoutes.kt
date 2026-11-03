@@ -14,10 +14,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import java.security.MessageDigest
 
-/** Endpoints nur für andere Services. Jede Route muss zuerst den Service-Token prüfen. */
 fun Route.internalRoutes(sessions: SessionService, gatewayToken: String) {
     post("/internal/sessions/verify") {
-        // Vor dem Body prüfen: ohne gültigen Service-Token gibt es immer 403, auch bei kaputtem Body.
+        // check the token before the body, so a broken body without a token still gets a 403
         call.requireServiceToken(gatewayToken)
 
         val request = call.receive<VerifySessionRequest>()
@@ -34,10 +33,9 @@ fun Route.internalRoutes(sessions: SessionService, gatewayToken: String) {
     }
 }
 
-/** Prüft den Header `X-Service-Token`. Fehlt er oder ist er falsch, gibt es 403. */
 private fun ApplicationCall.requireServiceToken(expectedToken: String) {
     val provided = request.headers[SERVICE_TOKEN_HEADER] ?: throw Forbidden()
-    // Erst hashen, damit auch Tokens unterschiedlicher Länge in konstanter Zeit verglichen werden.
+    // hash first so tokens of different lengths still compare in constant time
     val matches = MessageDigest.isEqual(sha256(provided.toByteArray()), sha256(expectedToken.toByteArray()))
     if (!matches) throw Forbidden()
 }

@@ -22,12 +22,10 @@ import kotlinx.coroutines.withContext
 import java.time.Clock
 import kotlin.uuid.Uuid
 
-// Damit wird bei unbekannten E-Mails weitergerechnet, siehe authenticate().
 private const val DUMMY_USER_ID = "00000000-0000-0000-0000-000000000000"
 private val DUMMY_SALT = ByteArray(VerifierHasher.SALT_LENGTH)
 private val DUMMY_VERIFIER = ByteArray(VerifierHasher.LENGTH)
 
-/** Alles rund ums Konto: Prelogin, Registrierung, Login und TOTP einrichten. */
 class AccountService(
     private val users: UserRepository,
     private val sessions: SessionService,
@@ -37,7 +35,7 @@ class AccountService(
     private val clock: Clock,
 ) {
 
-    /** Salt und KDF-Parameter. Unbekannte E-Mails bekommen ein Fake-Salt, das pro E-Mail immer gleich ist. */
+    // unknown emails get a fake salt that's always the same per email, so you can't tell which accounts exist
     suspend fun prelogin(email: String): PreloginResponse {
         val user = users.findByEmail(email)
         val fakeSalt = hmacSha256(preloginSecret, email.toByteArray(Charsets.UTF_8)).copyOf(SALT_LOGIN_LENGTH)
@@ -48,7 +46,6 @@ class AccountService(
         }
     }
 
-    /** Legt das Konto mit TOTP, seine Schlüssel beim Key-Service und die erste Session an. */
     suspend fun register(
         email: String,
         saltLogin: ByteArray,
@@ -70,7 +67,7 @@ class AccountService(
             saltSLogin = saltSLogin,
             loginVerifier = loginVerifier(userId, loginKey, saltSLogin),
             totpSecret = totpSecret,
-            // Der Code aus der Registrierung zählt als benutzt und taugt nicht mehr für einen Login.
+            // the code from the registration counts as used, it won't work for a login
             totpLastStep = totpStep,
         )
         keys.createUserKeys(userId)
@@ -94,7 +91,6 @@ class AccountService(
         }
     }
 
-    /** Richtet TOTP für ein Konto von vor TOTP ein. Hat das Konto schon TOTP, kommt `409`. */
     suspend fun enableTotp(userId: String, totpSecret: ByteArray, totpCode: String) {
         val totpStep = firstTotpStep(totpSecret, totpCode)
         if (!users.enableTotp(userId, totpSecret, totpStep)) throw AlreadyExists()
@@ -102,7 +98,7 @@ class AccountService(
 
     private suspend fun authenticate(email: String, loginKey: ByteArray): User {
         val user = users.findByEmail(email)
-        // Bei unbekannter E-Mail mit Dummy-Werten weiterrechnen, damit beide Fälle gleich lange dauern.
+        // keep going with dummy values for unknown emails so both cases take the same time
         val h = keys.pepperHmac(user?.userId ?: DUMMY_USER_ID, loginKey)
         val verifierMatches = withContext(Dispatchers.Default) {
             VerifierHasher.matches(h, user?.saltSLogin ?: DUMMY_SALT, user?.loginVerifier ?: DUMMY_VERIFIER)
@@ -111,21 +107,18 @@ class AccountService(
         return user
     }
 
-    /** Konten ohne TOTP-Secret kommen ohne Code rein. Alle anderen brauchen einen Code, der noch nicht benutzt wurde. */
     private suspend fun checkTotp(user: User, code: String?) {
-        val secret = user.totpSecret ?: return
+        val secret = user.totpSecret ?: return // accounts from before TOTP get in without a code
         if (code == null) throw Unauthorized()
         val step = Totp.matchingStep(secret, code, clock.instant(), user.totpLastStep) ?: throw Unauthorized()
-        // Kommen zwei Logins mit demselben Code gleichzeitig an, gewinnt hier nur einer.
         if (!users.markTotpStepUsed(user.userId, step)) throw Unauthorized()
     }
 
-    /** Prüft den ersten Code zu einem neuen Secret und gibt seinen Zeitschritt zurück. */
     private fun firstTotpStep(secret: ByteArray, code: String): Long =
         Totp.matchingStep(secret, code, clock.instant(), lastUsedStep = null)
             ?: throw BadRequest("invalid_totp")
 
-    /** Login-Verifier = Argon2id(h, salt_s_login) mit h = HMAC(pepper_login, loginKey) vom Key-Service. */
+    // verifier = argon2id(h, salt_s_login) with h = hmac(pepper_login, loginKey) from the key service
     private suspend fun loginVerifier(userId: String, loginKey: ByteArray, saltSLogin: ByteArray): ByteArray {
         val h = keys.pepperHmac(userId, loginKey)
         return withContext(Dispatchers.Default) { VerifierHasher.hash(h, saltSLogin) }

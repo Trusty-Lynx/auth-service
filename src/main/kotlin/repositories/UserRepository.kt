@@ -12,20 +12,15 @@ import javax.sql.DataSource
 
 private const val UNIQUE_VIOLATION = "23505"
 
-/** Interface, damit die Tests eine Variante ohne Datenbank einsetzen können (`Fakes.kt`). */
 interface UserRepository {
-    /** Speichert den Nutzer zusammen mit seiner ersten Session. Entweder beides oder nichts. */
     suspend fun create(user: User, firstSession: Session)
 
     suspend fun findByEmail(email: String): User?
 
-    /**
-     * Merkt sich [step] als benutzten TOTP-Zeitschritt, aber nur, wenn er neuer ist als der bisherige.
-     * `false`, wenn ein anderer Login denselben oder einen neueren Schritt schon benutzt hat.
-     */
+    // false if another login already used this step or a newer one
     suspend fun markTotpStepUsed(userId: String, step: Long): Boolean
 
-    /** Speichert das TOTP-Secret eines Kontos, das noch keins hat. `false`, wenn es schon eins hat. */
+    // false if the account already has a secret
     suspend fun enableTotp(userId: String, secret: ByteArray, step: Long): Boolean
 }
 
@@ -59,7 +54,7 @@ class PostgresUserRepository(private val dataSource: DataSource) : UserRepositor
     }
 
     override suspend fun markTotpStepUsed(userId: String, step: Long): Boolean = dataSource.withConnection { connection ->
-        // Ein einziges UPDATE mit Bedingung, damit zwei gleichzeitige Logins nicht beide durchkommen.
+        // one UPDATE with a condition, so two logins at the same time can't both get through
         val sql = """
             UPDATE users SET totp_last_step = ?
             WHERE user_id = ? AND totp_secret IS NOT NULL AND (totp_last_step IS NULL OR totp_last_step < ?)
@@ -99,7 +94,7 @@ class PostgresUserRepository(private val dataSource: DataSource) : UserRepositor
             try {
                 statement.executeUpdate()
             } catch (e: SQLException) {
-                // Greift, wenn zwei Registrierungen mit derselben E-Mail gleichzeitig ankommen.
+                // happens when two registrations with the same email come in at the same time
                 if (e.sqlState == UNIQUE_VIOLATION) throw AlreadyExists()
                 throw e
             }

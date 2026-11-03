@@ -6,7 +6,7 @@ import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import kotlinx.serialization.json.Json
 
-/** JSON-Regeln dieser API. Unbekannte Felder im Request führen zu `400`. */
+// no ignoreUnknownKeys on purpose, unknown fields in a request should give a 400
 val AppJson = Json {
     explicitNulls = false
     encodeDefaults = true

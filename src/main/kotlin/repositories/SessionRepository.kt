@@ -7,7 +7,6 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import javax.sql.DataSource
 
-/** Interface, damit die Tests eine Variante ohne Datenbank einsetzen können (`Fakes.kt`). */
 interface SessionRepository {
     suspend fun create(session: Session)
 
@@ -48,7 +47,7 @@ class PostgresSessionRepository(private val dataSource: DataSource) : SessionRep
     )
 }
 
-/** Fügt eine Session über [connection] ein. [PostgresUserRepository] nutzt das für die erste Session in seiner Transaktion. */
+// takes a connection so UserRepository can call it inside its transaction
 fun insertSession(connection: Connection, session: Session) {
     val sql = "INSERT INTO sessions (session_id, user_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)"
     connection.prepareStatement(sql).use { statement ->

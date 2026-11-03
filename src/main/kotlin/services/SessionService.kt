@@ -12,16 +12,14 @@ import kotlin.uuid.Uuid
 
 private const val TOKEN_LENGTH = 32
 
-/** Login-Sessions: Token ausstellen, prüfen und beenden. */
 class SessionService(
     private val sessions: SessionRepository,
     private val clock: Clock,
     private val tokenTtl: Duration,
 ) {
-    /** Würfelt einen neuen Login-Token. */
     fun newToken(): String = secureRandomBytes(TOKEN_LENGTH).toBase64()
 
-    /** Baut die Session zu einem Token, speichert sie aber noch nicht. */
+    // doesn't save anything yet, register() stores it together with the new user
     fun newSession(userId: String, token: String): Session {
         val now = clock.instant()
         return Session(
@@ -33,14 +31,12 @@ class SessionService(
         )
     }
 
-    /** Legt eine neue Session an und gibt ihren Login-Token zurück. */
     suspend fun issue(userId: String): String {
         val token = newToken()
         sessions.create(newSession(userId, token))
         return token
     }
 
-    /** Die Session zum Token, wenn es sie gibt und sie nicht abgelaufen ist. Sonst 401. */
     suspend fun verify(token: String): Session {
         val session = sessions.findByTokenHash(hash(token)) ?: throw Unauthorized()
         if (!session.expiresAt.isAfter(clock.instant())) throw Unauthorized()

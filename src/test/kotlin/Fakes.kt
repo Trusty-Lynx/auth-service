@@ -47,12 +47,11 @@ class InMemoryUserRepository(private val sessions: InMemorySessionRepository) : 
         if (user.totpSecret == null) user.withTotp(secret, step) else null
     }
 
-    /** Macht aus einem Konto eins von vor TOTP. */
     fun removeTotp(userId: String) {
         users.computeIfPresent(userId) { _, user -> user.withTotp(null, null) }
     }
 
-    // Atomar wie das bedingte UPDATE in Postgres: [change] gibt den neuen Nutzer zurück oder null für "nichts ändern".
+    // atomic like the conditional UPDATE in postgres. change returns the new user, or null to leave it alone
     private fun updateIf(userId: String, change: (User) -> User?): Boolean {
         var updated = false
         users.computeIfPresent(userId) { _, user ->

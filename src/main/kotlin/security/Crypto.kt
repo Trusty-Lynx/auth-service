@@ -18,7 +18,7 @@ fun sha256(data: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").di
 
 fun hmacSha256(key: ByteArray, data: ByteArray): ByteArray = hmac("HmacSHA256", key, data)
 
-/** Nur für TOTP: RFC 6238 und die Authenticator-Apps rechnen mit SHA-1. */
+// only for TOTP, authenticator apps still use SHA-1
 fun hmacSha1(key: ByteArray, data: ByteArray): ByteArray = hmac("HmacSHA1", key, data)
 
 private fun hmac(algorithm: String, key: ByteArray, data: ByteArray): ByteArray {

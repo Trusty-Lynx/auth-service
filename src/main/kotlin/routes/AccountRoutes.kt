@@ -17,7 +17,6 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 
-/** Endpoints für den Client: Request lesen, Eingaben prüfen, Service aufrufen, Antwort schicken. */
 fun Route.accountRoutes(accounts: AccountService, sessions: SessionService) {
     get("/prelogin") {
         val email = call.request.queryParameters["email"] ?: throw BadRequest("missing email")
@@ -51,7 +50,7 @@ fun Route.accountRoutes(accounts: AccountService, sessions: SessionService) {
     }
 
     post("/account/totp") {
-        // Vor dem Body prüfen: ohne gültigen Login-Token gibt es immer 401, auch bei kaputtem Body.
+        // check the token before the body, so a broken body without a token still gets a 401
         val session = sessions.verify(call.bearerToken())
         val request = call.receive<TotpSetupRequest>()
 

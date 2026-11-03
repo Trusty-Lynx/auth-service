@@ -28,7 +28,6 @@ fun main(args: Array<String>) {
     EngineMain.main(args)
 }
 
-/** Start des Service: liest die Konfiguration, baut alle Teile und verbindet sie miteinander. */
 fun Application.module() {
     val config = AppConfig.fromEnv()
 
@@ -55,7 +54,7 @@ fun Application.module() {
     configureApp(accounts, sessions, config.serviceTokenGateway, config.cors) { dataSource.isReachable() }
 }
 
-/** Plugins und Routen. Getrennt von [module], damit die Tests sie mit Fakes statt Datenbank starten können. */
+// separate from module() so the tests can start the app with fakes instead of a real db
 fun Application.configureApp(
     accounts: AccountService,
     sessions: SessionService,

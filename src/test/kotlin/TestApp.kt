@@ -66,13 +66,11 @@ class AuthTestEnv {
         if (email != null) parameter("email", email)
     }
 
-    /** Der aktuelle Code der Authenticator-App zur Test-Uhr. */
     fun totpCode(secret: ByteArray = TOTP_SECRET): String = Totp.code(secret, Totp.step(clock.instant()))
 
-    /** Ein gültig aussehender Code, der gerade nicht passt. */
     fun wrongTotpCode(): String = Totp.code(TOTP_SECRET, Totp.step(clock.instant()) + 5)
 
-    /** Wartet auf den nächsten Code. Jeder Code gilt pro Konto nur einmal, auch der aus der Registrierung. */
+    // every code only works once per account, even the one from the registration
     fun nextTotpCode() = clock.advance(Totp.PERIOD)
 
     suspend fun register(email: String = EMAIL, totp: TotpSetupRequest = totpSetup()): HttpResponse =
@@ -97,7 +95,7 @@ class AuthTestEnv {
         return AppJson.decodeFromString(response.bodyAsText())
     }
 
-    /** Ein Konto von vor TOTP: registriert, dann das Secret wieder entfernt. */
+    // an account from before TOTP: register it, then take the secret away again
     suspend fun legacyAccount(email: String = EMAIL): RegisterResponse {
         val registered = registered(email)
         users.removeTotp(registered.userId)

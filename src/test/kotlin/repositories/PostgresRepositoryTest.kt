@@ -134,7 +134,7 @@ class PostgresRepositoryTest {
 
     @Test
     fun `a user is not stored when its first session fails`() = runBlocking {
-        // Ein Token-Hash mit 31 statt 32 Bytes verletzt den CHECK in der Tabelle sessions.
+        // a token hash with 31 instead of 32 bytes breaks the CHECK on the sessions table
         val brokenSession = Session("session-1", "user-1", ByteArray(31), CREATED_AT, EXPIRES_AT)
 
         assertFailsWith<SQLException> { users.create(user(), brokenSession) }

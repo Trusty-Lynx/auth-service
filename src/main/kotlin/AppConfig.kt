@@ -5,14 +5,12 @@ import de.trustylynx.repositories.DbConfig
 import de.trustylynx.security.decodeBase64OrNull
 import java.time.Duration
 
-/** Header, mit dem sich die Services untereinander ausweisen. */
 const val SERVICE_TOKEN_HEADER = "X-Service-Token"
 
 private const val PRELOGIN_SECRET_LENGTH = 32
 
 private val isDevelopment = System.getProperty("io.ktor.development")?.toBoolean() == true
 
-/** Alle Umgebungsvariablen an einer Stelle. Welche es gibt, steht in `.env.example`. */
 class AppConfig(
     val db: DbConfig,
     val keyServiceUrl: String,
@@ -42,13 +40,11 @@ class AppConfig(
     }
 }
 
-/** Optionale Variable. Fehlt sie, gilt [default]. */
 private fun env(name: String, default: String): String {
     val value = System.getenv(name)
     return if (value.isNullOrBlank()) default else value
 }
 
-/** Pflichtvariable. Nur im Dev-Modus (`-Pdevelopment`) darf sie fehlen, dann gilt [devDefault]. */
 private fun envOrDev(name: String, devDefault: String): String {
     val value = System.getenv(name)
     if (!value.isNullOrBlank()) return value

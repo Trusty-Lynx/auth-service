@@ -2,7 +2,6 @@ package de.trustylynx.models
 
 import io.ktor.http.HttpStatusCode
 
-/** Fehler, die als JSON an den Client gehen. Beantwortet werden sie in `plugins/StatusPages.kt`. */
 open class ApiException(
     val status: HttpStatusCode,
     val code: String,
@@ -20,5 +19,4 @@ class AlreadyExists : ApiException(HttpStatusCode.Conflict, "already_exists")
 class TooManyRequests(val retryAfterSeconds: Long) :
     ApiException(HttpStatusCode.TooManyRequests, "too_many_requests")
 
-/** Ein anderer Service (Key-Service) hat unbrauchbar geantwortet. Wird zu 502. */
 class UpstreamException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
